@@ -10,6 +10,41 @@ function percent(value) {
     return parseFloat(value.toFixed(1)) + '%'
 }
 
+function updateCellColours(ident) {
+    var target = $(ident + 'target-edit').val();
+    var stoploss = $(ident + 'stoploss-edit').val();
+    var percentage = parseFloat($(ident + 'percentage').text());
+    var bid = $(ident + 'bid').text();
+    
+    if (bid <= stoploss) {
+        $(ident + 'stoploss').addClass('danger');
+    } else {
+        $(ident + 'stoploss').removeClass('danger');
+    };
+    
+    if (bid >= target) {
+        $(ident + 'target').addClass('success');
+    } else {
+        $(ident + 'target').removeClass('success');
+    };
+    
+    if (percentage >= 20) {
+        $(ident + 'percentage').addClass('success');
+        $(ident + 'profitloss').addClass('success');
+    } else {
+        $(ident + 'percentage').removeClass('success');
+        $(ident + 'profitloss').removeClass('success');
+    };
+    
+    if (percentage < 0) {
+        $(ident + 'percentage').addClass('danger');
+        $(ident + 'profitloss').addClass('danger');
+    } else {
+        $(ident + 'percentage').removeClass('danger');
+        $(ident + 'profitloss').removeClass('danger');
+    };
+}
+
 // Get bid price and update cell in table
 function updateBid(val) {
     var xmlHttp = new XMLHttpRequest();
@@ -22,11 +57,11 @@ function updateBid(val) {
             var percentage = ((10000 * (value - costs) / (val['buyprice'] * val['quantity'])) - 100)
             
             // Update row
-            var identifier = '#' + val['id'] + '-' + val['epic'] + '-'
-            $(identifier + 'lookup').text(bid)
-            $(identifier + 'value').text(gbp(value))
-            $(identifier + 'profitloss').text(gbp(profitloss))
-            $(identifier + 'percentage').text(percent(percentage))
+            var ident = '#' + val['id'] + '-' + val['epic'] + '-'
+            $(ident + 'bid').text(bid)
+            $(ident + 'value').text(gbp(value))
+            $(ident + 'profitloss').text(gbp(profitloss))
+            $(ident + 'percentage').text(percent(percentage))
             
             var change = value - (val['sellprice'] * val['quantity'] * 0.01)
             
@@ -49,6 +84,8 @@ function updateBid(val) {
             // Update last updated time
             var now = new Date().toLocaleString()
             $('#lastupdated').text(now)
+            
+            updateCellColours(ident)
             
             data = {
                 'id': val['id'],
@@ -79,6 +116,20 @@ function refreshPrices() {
 }
 
 $(function() {
+    $('.indexform').keydown(function(e){
+        if(e.keyCode == 13){
+            var ident = $(this).attr('id')
+            var xhr = new XMLHttpRequest();
+            xhr.open('post', '/updateindex', true);
+            xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+            xhr.send(JSON.stringify([ident, $(this).val()]));
+            
+            var data = ident.split('-');
+            updateCellColours('#' + data[0] + '-' + data[1] + '-');
+            $(this).blur();
+        }
+    })
+    
     $('.datepicker').datepicker();
     $('#anim').on('change', function() {
         $('.datepicker').datepicker('option', 'showAnim', 'slideDown');
@@ -142,6 +193,7 @@ $(function() {
             if (data != '') {
                 $('#company').text(data[0]['company']);
                 $('#company').attr('value', data[0]['company']);
+                
             } else {
                 $('#company').text('');
                 $('#company').attr('value', '');

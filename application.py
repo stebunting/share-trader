@@ -63,6 +63,8 @@ def shares():
             return redirect(url_for('index'))
         
         elif request.form.get('submit') == 'submit':
+            
+            # Assume input is true to start with
             valid = True
             
             # Validate EPIC code
@@ -71,7 +73,16 @@ def shares():
             if len(data) == 0:
                 valid = False
             
-            # Dictionary of posted values
+            # Dictionary to keep state when page is reloaded
+            # All these values are verified or don't need verification
+            share = {
+                'epic': request.form.get('epic').upper(),
+                'company': request.form.get('company'),
+                'status': request.form.get('status'),
+                'comment': request.form.get('comment')
+            }
+            
+            # Dictionary of posted values to check, will be added to share dict
             # {field: [variable, type, require user entry, default]}
             values = {
                 'buydate': [request.form.get('buydate'), 'date', False, str(datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'))],
@@ -85,7 +96,6 @@ def shares():
                 'buyprice': [request.form.get('buyprice'), 'float', True, 0]
             }
             
-            share = {}
             for key, val in values.items():
                 try:
                     if val[1] == 'float' or val[1] == 'int':
@@ -98,7 +108,8 @@ def shares():
                     share[key] = val[3]
                     if val[2]:
                         valid = False
-                        
+            
+            # Dictionary of values to check with defaults that depend on the last step
             defaults = {
                 'buycost': [request.form.get('buycost'), 'float', False, share['quantity'] * share['buyprice'] * 0.01],
                 'target': [request.form.get('target'), 'float', False, share['buyprice'] * 1.2],
@@ -118,13 +129,7 @@ def shares():
                     if val[2]:
                         valid = False
             
-            share = {**share, **{
-                'epic': request.form.get('epic').upper(),
-                'status': request.form.get('status'),
-                'comment': request.form.get('comment')
-            }}
-            
-            flash(valid)
+            # If input is valid, write to database
             if valid:
                 data = [session['user_id'], 1, share['epic'], share['company'], share['status'],
                         share['buydate'], share['buyprice'], share['quantity'], share['stampduty'],
@@ -295,6 +300,23 @@ def update():
         [content['bid'], content['value'], content['profitloss'], content['percentage'], session['user_id'], content['id']])
     cursor.execute('UPDATE portfolio SET lastupdated=NOW() WHERE userid=%s AND portfolioid=1', [session['user_id']])
     conn.commit()
+    return '1'
+    
+@app.route('/updateindex', methods=['POST'])
+def updateindex():
+    content = request.get_json()
+    data = content[0].split('-')
+    try:
+        value = float(content[1])
+        conn = mysql.connect()
+        cursor = conn.cursor()
+        if data[2] == 'target':
+            cursor.execute('UPDATE shares SET target=%s WHERE id=%s', [value, data[0]])
+        elif data[2] == 'stoploss':
+            cursor.execute('UPDATE shares SET stoploss=%s WHERE id=%s', [value, data[0]])
+        conn.commit()
+    except:
+        pass
     return '1'
         
 @app.route('/bid')
