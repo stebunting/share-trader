@@ -1,0 +1,244 @@
+{% extends 'layout.html' %}
+
+{% block title%}Shares{% endblock %}
+
+{% block body %}
+    <h1>Shares</h1>
+    <form class="form-horizontal" action="{{ url_for('shares') }}" method="post">
+        <input type="hidden" name="id" value="{% if share %}{{ share['id'] }}{% endif %}">
+        <div class="row">
+            <div class="col-md-6 col-md-push-6">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Company Details</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-group row">
+                            <label class="control-label col-md-3" for="epic">EPIC</label>
+                            <div class="col-md-9">
+                                <input type="text" class="form-control" maxlength="6" id="epic" name="epic" placeholder="EPIC" {% if share['epic'] %}value="{{ share['epic'] }}"{% endif %}" {% if share['id'] %}readonly{% endif %}>
+                            </div>
+                        </div>
+        
+                        <div class="form-group row">
+                            <label class="control-label col-md-3" for="company">Company</label>
+                            <div class="col-md-9">{% if share['id'] %}{% filter title %}{{ share['company'].strip() }}{% endfilter %}{% else %}
+                                <select class="form-control" id="company" name="company">
+                                    {% for company in companies %}<option value="{{ company['company'].strip() }}" {% if share['company'] and company['company'].strip() == share['company'].strip() %}selected{% endif %}>{% filter title %}{{ company['company'].strip() }}{% endfilter %}</option>
+                                    {% endfor %}
+                                </select>{% endif %}
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="control-label col-md-3">Market</label>
+                            <div class="col-md-9">{% if share %}{{ share['market'] }}{% endif %}</div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="control-label col-md-3">Sector</label>
+                            <div class="col-md-9">{% if share %}{{ share['sector'] }}{% endif %}</div>
+                        </div>
+        
+                        <div class="form-group row">
+                            <label class="control-label col-md-3">Sub-sector</label>
+                            <div class="col-md-9">{% if share %}{{ share['subsector'] }}{% endif %}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Info</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-group row">
+                            <label class="control-label col-md-4" for="comment">Comment</label>
+                            <div class="col-md-8">
+                                <textarea id ="comment" name="comment" rows="6" cols="40" placeholder="Why did you make the trade? How strongly do you feel about it?">{% if share['comment'] %}{{ share['comment'] }}{% endif %}</textarea>
+                            </div>
+                        </div>
+        
+                        <div class="form-group row">
+                            <label class="control-label col-md-4" for="status">Status</label>
+                            <div class="col-md-8 row">
+                                <label class="radio inline col-md-3">
+                                    <input type="radio" name="status" id="statusopen" value="1" {% if share['status'] != '0' %}checked="checked"{% endif %}>
+                                    Open
+                                </label>
+                                <label class="radio inline col-md-3">
+                                    <input type="radio" name="status" id="statusclosed" value="0" {% if share['status'] == '0' %}checked="checked"{% endif %}>
+                                    Closed
+                                </label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8 col-md-push-4">
+                                {% if share['id'] %}<button type="submit" name="submit" value="update" class="btn">Update</button>
+                                <button type="submit" name="submit" value="delete" class="btn">Delete</button>
+                                {% else %}<button type="submit" name="submit" value="submit" class="btn">Submit</button>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-md-pull-6">
+                <div class="panel panel-warning">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Holding</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-group row">
+                            <label class="control-label col-md-4" for="quantity">Quantity</label>
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="quantity" name="quantity" placeholder="Quantity" {% if share['quantity'] %}value="{{ share['quantity'] }}"{% endif %} {% if share['id'] %}readonly{% endif %}>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="target">Target Price</label>
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="target" name="target" placeholder="Target Price" value="{% if share['id'] and share['target'] != None %}{{ share['target'] }}{% endif %}">
+                                    <span class="input-group-addon">p</span>
+                                    <div class="input-group-btn">
+                                        <button class="btn btn-default" id="targetcalculate" type="button">20%</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="stoploss">Stop Loss</label>
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="stoploss" name="stoploss" placeholder="Stop Loss" value="{% if share['id'] and share['stoploss'] != None %}{{ share['stoploss'] }}{% endif %}">
+                                    <span class="input-group-addon">p</span>
+                                    <div class="input-group-btn">
+                                        <button class="btn btn-default" id="stoplosscalculate" type="button">10%</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="daysheld">Days Held</label>
+                            <div class="col-md-8">
+                                <p>{{ daysHeld }}</p>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="profitloss">Profit/Loss</label>
+                            <div class="col-md-8">
+                                <p>{% if share['profitloss'] %}{{ share['profitloss']|gbp }}{% else %}{{ 0|gbp }}{% endif %}</p>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="percentage">Percentage</label>
+                            <div class="col-md-8">
+                                <p>{% if share['percentage'] %}{{ share['percentage']|percentage }}{% else %}{{ 0|percentage }}{% endif %}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel panel-success">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Purchase</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-group row">
+                            <label class="control-label col-md-4" for="buydate">Purchase Date</label>
+                            <div class="col-md-8">
+                                <input type="text" class="form-control datepicker" id="buydate" name="buydate" placeholder="Date" value="{% if share['buydate'] %}{{ share['buydate'] }}{% endif %}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="buyprice">Purchase Price</label>
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="buyprice" name="buyprice" placeholder="Price" value="{% if share['buyprice'] %}{{ share['buyprice'] }}{% endif %}">
+                                    <span class="input-group-addon">p</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="stampduty">Stamp Duty</label>
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <span class="input-group-addon">£</span>
+                                    <input type="text" class="form-control" id="stampduty" name="stampduty" placeholder="Stamp Duty" value="{% if share['id'] and share['stampduty'] != None %}{{ share['stampduty'] }}{% endif %}">
+                                    <div class="input-group-btn">
+                                        <button class="btn btn-default" id="stampdutycalculate" type="button">=</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="buytradecost">Trade Cost (Buy)</label>
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <span class="input-group-addon">£</span>
+                                    <input type="text" class="form-control" id="buytradecost" name="buytradecost" placeholder="Trade Cost" value="{% if share['id'] and share['buytradecost'] != None %}{{ share['buytradecost'] }}{% endif %}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="buycost">Total Cost</label>
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <span class="input-group-addon">£</span>
+                                    <input type="text" class="form-control" id="buycost" name="buycost" placeholder="Total Cost" value="{% if share['id'] and share['buycost'] != None %}{{ share['buycost'] }}{% endif %}">
+                                    <div class="input-group-btn">
+                                        <button class="btn btn-default" id="buycostcalculate" type="button">=</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                  
+                <div class="panel panel-danger">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Sale</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="selldate">Sale Date</label>
+                            <div class="col-md-8">
+                                <input type="text" class="form-control datepicker" id="selldate" name="selldate" placeholder="Sale Date" value="{% if share['selldate'] != None and share['selldate'] != '0000-00-00 00:00:00' %}{{ share['selldate'] }}{% endif %}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="sellprice">Sale Price</label>
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="sellprice" name="sellprice" placeholder="Sale Price" value="{% if share['id'] and share['sellprice'] != None %}{{ share['sellprice'] }}{% endif %}">
+                                    <span class="input-group-addon">p</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="selltradecost">Trade Cost (Sale)</label>
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <span class="input-group-addon">£</span>
+                                    <input type="text" class="form-control" id="selltradecost" name="selltradecost" placeholder="Trade Cost" value="{% if share['id'] and share['selltradecost'] != None %}{{ share['selltradecost'] }}{% endif %}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-4" for="totalsale">Total Sale</label>
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <span class="input-group-addon">£</span>
+                                    <input type="text" class="form-control" id="totalsale" name="totalsale" placeholder="Total Sale" value="{% if share['id'] and share['totalsale'] != None %}{{ share['totalsale'] }}{% endif %}">
+                                    <div class="input-group-btn">
+                                        <button class="btn btn-default" id="sellpricecalculate" type="button">=</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+{% endblock %}

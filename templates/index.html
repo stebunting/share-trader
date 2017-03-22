@@ -1,0 +1,83 @@
+{% extends 'layout.html' %}
+
+{% block title%}Index{% endblock %}
+
+{% block body %}
+    <div class="row">
+        <div class="col-md-7">
+            <h1>Open Positions</h1>
+            <a href="https://www.iwebsharedealing.co.uk/_mem_bin/Formslogin.asp" target="_blank" class="btn btn-primary" role="button">iWeb Share Dealing</a>
+            <a href="https://online.hl.co.uk/my-accounts/login-step-one" target="_blank" class="btn btn-primary" role="button">Hargreaves Lansdown</a>
+            <input type="button" class="btn btn-primary" id="refreshPrices" value="Refresh Prices" data-loading-text="Refreshing..." onclick="refreshPrices()">
+        </div>
+        <div class="col-md-5">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Portfolio Details</h3>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-5">Market Exposure</div>
+                        <div class="col-md-7" id="exposure">{{ details['market_exposure']|gbp }}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-5">Current Sale Value</div>
+                        <div class="col-md-7" id="salevalue">{{ (details['market_exposure'] - details['sale_costs'])|gbp }}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-5">Invested Capital</div>
+                        <div class="col-md-7" id="capital">{{ portfolio['portfoliocapital']|gbp }}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-5">Cash</div>
+                        <div class="col-md-7" id="cash">{{ portfolio['portfoliocash']|gbp }}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-5">Profit/Loss</div>
+                        <div class="col-md-7" id="profitloss">{{ (details['market_exposure'] - details['sale_costs'] + portfolio['portfoliocash'] - portfolio['portfoliocapital'])|gbp }}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-5"></div>
+                        <div class="col-md-7" id="percentage">{{ ((100 * ((details['market_exposure'] - details['sale_costs'] + portfolio['portfoliocash']) / portfolio['portfoliocapital'])) - 100)|percentage }}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-5">Last Updated</div>
+                        <div class="col-md-7" id="lastupdated">{{ portfolio['lastupdated'] }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <table class="table table-striped table-hover">
+    	<thead>
+    		<tr>
+            	<th class="text-right">EPIC</th>
+                <th class="text-left">Company</th>
+                <th class="text-right">Cost</th>
+                <th class="text-right">Quantity</th>
+                <th class="text-right">Target</th>
+                <th class="text-right">Stop Loss</th>
+                <th class="text-right">Bid</th>
+                <th class="text-right">Value</th>
+                <th class="text-right">Profit/Loss</th>
+                <th class="text-right">Percentage</th>
+            </tr>
+        </thead>
+    	<tbody>
+        	{% for row in data %}<tr>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-epic" class="text-right"><a href="{{ url_for('shares') }}?id={{ row['id'] }}">{{ row['epic'] }}</a></td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-company" class="text-left"><a href="{{ url_for('shares') }}?id={{ row['id'] }}">{% filter title %}{{ row['company'].strip() }}{% endfilter %}</a></td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-buyprice" class="text-right">{{ row['buyprice']|shareprice }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-quantity" class="text-right">{{ row['quantity'] }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-target" class="text-right{% if row['target'] <= row['sellprice'] %} success">{% else %}">{% endif %}{{ row['target']|shareprice }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-stoploss" class="text-right{% if row['stoploss'] >= row['sellprice'] %} danger">{% else %}">{% endif %}{{ row['stoploss']|shareprice }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-lookup" class="text-right {{ row['epic'] }}">{{ row['sellprice']|shareprice }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-value" class="text-right">{{ (row['sellprice'] * row['quantity'] * 0.01)|gbp }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-profitloss" class="text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}{{ row['profitloss']|gbp }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-percentage" class="text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}{{ row['percentage']|percentage }}</td>
+            </tr>{% endfor %}
+        </tbody>
+    </table>
+    <script>refreshPrices();</script>
+{% endblock %}

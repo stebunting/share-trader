@@ -1,0 +1,28 @@
+{% extends 'layout.html' %}
+
+{% block title%}Index{% endblock %}
+
+{% block body %}
+    <h1>Statement</h1>
+    <table class="table table-striped">
+    	<thead>
+    		<tr>
+            	<th>Date</th>
+                <th>Company</th>
+                <th>Debit</th>
+                <th>Credit</th>
+                <th>Balance</th>
+            </tr>
+        </thead>
+    	<tbody>
+        	{% for row in statement %}<tr{% if row['type'] == 'cash' %} class="warning"{% endif %}>
+                <td>{{ row['date']|dateFormat }}</td>
+                <td>{% if row['type'] != 'cash' %}<a href="{{ url_for('shares') }}?id={{ row['id'] }}">{% endif %}{{ row['company'] }}{% if row['type'] != 'cash' %}</a>{% endif %}{% if row['notes'] %}
+                <p class="help-block">{{ row['notes'] }}</p>{% endif %}</td>
+                <td>{% if row['debit'] %}{{ row['debit']|gbp }}{% endif %}</td>
+                <td>{% if row['credit'] %}{{ row['credit']|gbp }}{% endif %}</td>
+                <td>{{ row['balance']|gbp }}</td>
+            </tr>{% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

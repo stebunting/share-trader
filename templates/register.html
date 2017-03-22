@@ -1,0 +1,40 @@
+{% extends 'layout.html' %}
+
+{% block title%}Index{% endblock %}
+
+{% block body %}
+    <div class="row">
+        <div class="col-md-6">
+            <div class="row">
+                <div class="col-md-9 col-md-push-3">
+                    <h1>Register</h1>
+                </div>
+            </div>
+            <form class="form-horizontal" action="/register" method="post">
+                <div class="form-group">
+                    <label for="reg_username" class="col-md-3 control-label">Username</label>
+                    <div class="col-md-9">
+                        <input type="text" class="form-control" id="reg_username" name="reg_username" placeholder="Username" value="{{ username }}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="reg_password" class="col-md-3 control-label">Password</label>
+                    <div class="col-md-9">
+                        <input type="password" class="form-control" id="reg_password" name="reg_password" placeholder="Password" value="">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="reg_confirmpassword" class="col-md-3 control-label">Confirm</label>
+                    <div class="col-md-9">
+                        <input type="password" class="form-control" id="reg_confirmpassword" name="reg_confirmpassword" placeholder="Confirm Password" value="">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-offset-3 col-md-9">
+                        <button type="submit" class="btn btn-default">Register</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

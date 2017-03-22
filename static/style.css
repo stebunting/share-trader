@@ -1,0 +1,16 @@
+td a:link, a:visited {
+    color: #000000;
+}
+
+td a:hover {
+    font-weight: bold;
+    text-decoration: none;
+}
+
+a:visited.btn {
+    color: #FFFFFF;
+}
+
+.dropdown-form {
+    width: 400px;
+}
