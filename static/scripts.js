@@ -108,11 +108,13 @@ function updateBid(val) {
 
 // Get symbols required to update bid prices
 function refreshPrices() {
+    var $btn = $('#refreshPrices').button('loading');
     $.getJSON('/symbols', function(data) {
         $.each(data, function(key, val) {
             updateBid(val);
         });
-    });
+    })
+    $btn.button('reset')
 }
 
 $(function() {

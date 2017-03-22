@@ -8,7 +8,7 @@
             <h1>Open Positions</h1>
             <a href="https://www.iwebsharedealing.co.uk/_mem_bin/Formslogin.asp" target="_blank" class="btn btn-primary" role="button">iWeb Share Dealing</a>
             <a href="https://online.hl.co.uk/my-accounts/login-step-one" target="_blank" class="btn btn-primary" role="button">Hargreaves Lansdown</a>
-            <input type="button" class="btn btn-primary" id="refreshPrices" value="Refresh Prices" data-loading-text="Refreshing..." onclick="refreshPrices()">
+            <input type="button" class="btn btn-primary" id="refreshPrices" value="Refresh Prices" data-loading-text="Refreshing..." onclick="refreshPrices()" autocomplete="off">
         </div>
         <div class="col-md-5">
             <div class="panel panel-primary">
@@ -78,5 +78,5 @@
             </tr>{% endfor %}
         </tbody>
     </table>
-    <script>refreshPrices();</script>
+    <!--<script>refreshPrices();</script>-->
 {% endblock %}

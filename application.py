@@ -178,7 +178,7 @@ def shares():
             daysHeld = (share[0]['selldate'] - share[0]['buydate']).days
         return render_template('shares.html', share=share[0], daysHeld=daysHeld)
 
-@app.route('/statement')
+@app.route('/statement', methods=['GET'])
 @login_required
 def statement():
     statement = []
@@ -190,7 +190,7 @@ def statement():
         statement.append({
             'id': row['id'],
             'date': row['buydate'],
-            'company': row['company'].title(),
+            'transaction': row['company'].title(),
             'debit': row['buycost'],
             'credit': '',
             'notes': '',
@@ -202,7 +202,7 @@ def statement():
         statement.append({
             'id': row['id'],
             'date': row['selldate'],
-            'company': row['company'].title(),
+            'transaction': row['company'].title(),
             'debit': '',
             'credit': row['totalsale'],
             'notes': '',
@@ -214,7 +214,7 @@ def statement():
         transaction = {
             'id': row['id'],
             'date': row['date'],
-            'company': 'Cash: {}'.format(row['category']),
+            'transaction': 'Cash: {}'.format(row['category']),
             'debit': '',
             'credit': '',
             'notes': row['notes'],
