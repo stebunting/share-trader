@@ -55,7 +55,7 @@ def index():
 def shares():
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('SELECT company, market, sector, subsector FROM companylist ORDER BY company ASC')
+    cursor.execute('SELECT epic, epic.company AS company, market, sector, subsector FROM companylist INNER JOIN epic ON epic.company=companylist.company ORDER BY epic ASC')
     companies = cursor.fetchall()
         
     if request.method == 'POST':
@@ -316,6 +316,14 @@ def bid():
         headers = dict(referer='http://uk.advfn.com/common/account/login')
     )
     return quote(request.args.get('epic'))
+
+@app.route('/company')
+def company():
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute('SELECT epic, epic.company, market, sector, subsector FROM epic INNER JOIN companylist ON epic.company=companylist.company WHERE epic=%s', [request.args.get('epic')])
+    data = cursor.fetchall()
+    return jsonify(data)
 
 @app.route('/register', methods=['POST'])
 def register():

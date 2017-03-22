@@ -20,27 +20,31 @@
                             </div>
                         </div>
         
-                        <div class="form-group row">
+                        {#<div class="form-group row">
                             <label class="control-label col-md-3" for="company">Company</label>
                             <div class="col-md-9">{% if share['id'] %}{% filter title %}{{ share['company'].strip() }}{% endfilter %}{% else %}
                                 <select class="form-control" id="company" name="company">
-                                    {% for company in companies %}<option value="{{ company['company'].strip() }}" {% if share['company'] and company['company'].strip() == share['company'].strip() %}selected{% endif %}>{% filter title %}{{ company['company'].strip() }}{% endfilter %}</option>
+                                    {% for company in companies %}<option value="{{ company['epic'].strip() }}"{% if share['company'] and company['company'].strip() == share['company'].strip() %} selected{% endif %}>{% filter title %}{{ company['company'].strip() }}{% endfilter %}</option>
                                     {% endfor %}
                                 </select>{% endif %}
                             </div>
+                        </div>#}
+                        <div class="form-group row">
+                            <label class="control-label col-md-3">Company</label>
+                            <div class="col-md-9" id="company">{% if share %}{{ share['company'] }}{% endif %}</div>
                         </div>
                         <div class="form-group row">
                             <label class="control-label col-md-3">Market</label>
-                            <div class="col-md-9">{% if share %}{{ share['market'] }}{% endif %}</div>
+                            <div class="col-md-9" id="market">{% if share %}{{ share['market'] }}{% endif %}</div>
                         </div>
                         <div class="form-group row">
                             <label class="control-label col-md-3">Sector</label>
-                            <div class="col-md-9">{% if share %}{{ share['sector'] }}{% endif %}</div>
+                            <div class="col-md-9" id="sector">{% if share %}{{ share['sector'] }}{% endif %}</div>
                         </div>
         
                         <div class="form-group row">
                             <label class="control-label col-md-3">Sub-sector</label>
-                            <div class="col-md-9">{% if share %}{{ share['subsector'] }}{% endif %}</div>
+                            <div class="col-md-9" id="subsector">{% if share %}{{ share['subsector'] }}{% endif %}</div>
                         </div>
                     </div>
                 </div>

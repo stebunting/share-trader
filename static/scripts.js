@@ -136,4 +136,20 @@ $(function() {
         }
         $('#stoploss').focus().val(targetprice.toFixed(2));
     });
+    
+    $('#epic').keyup(function() {
+        $.getJSON('/company?epic=' + $('#epic').val(), function(data) {
+            if (data != '') {
+                $('#company').text(data[0]['company']);
+                $('#market').text(data[0]['market']);
+                $('#sector').text(data[0]['sector']);
+                $('#subsector').text(data[0]['subsector']);
+            } else {
+                $('#company').text('');
+                $('#market').text('');
+                $('#sector').text('');
+                $('#subsector').text('');
+            }
+        });
+    });
 });
