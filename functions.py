@@ -27,7 +27,7 @@ def quote(epic):
     page = requests.get('http://uk.advfn.com/p.php?pid=financials&symbol=LSE:{}'.format(epic))
     tree = html.fromstring(page.content)
     bid = tree.xpath('.//td[@class="m"][@align="center"]/text()')
-    return bid[3].strip()
+    return bid[3].strip().replace(',', '')
 
 def login_required(f):
     @wraps(f)
