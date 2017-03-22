@@ -37,7 +37,7 @@ app.jinja_env.filters['dateFormat'] = dateFormat
 def index():
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM shares WHERE userid=%s AND portfolio=1 AND status=1 ORDER BY epic ASC', [session['user_id']])
+    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=1 AND status=1 ORDER BY epic ASC', [session['user_id']])
     data = cursor.fetchall()
     cursor.execute('SELECT * FROM portfolio WHERE userid=%s AND portfolioid=1', [session['user_id']])
     portfolio = cursor.fetchone()
@@ -55,8 +55,6 @@ def index():
 def shares():
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('SELECT epic, epic.company AS company, market, sector, subsector FROM companylist INNER JOIN epic ON epic.company=companylist.company ORDER BY epic ASC')
-    companies = cursor.fetchall()
         
     if request.method == 'POST':
         if request.form.get('submit') == 'delete':
@@ -66,6 +64,12 @@ def shares():
         
         elif request.form.get('submit') == 'submit':
             valid = True
+            
+            # Validate EPIC code
+            cursor.execute('SELECT * FROM companies WHERE symbol=%s', [request.form.get('epic')])
+            data = cursor.fetchall()
+            if len(data) == 0:
+                valid = False
             
             # Dictionary of posted values
             # {field: [variable, type, require user entry, default]}
@@ -115,11 +119,11 @@ def shares():
                         valid = False
             
             share = {**share, **{
-                'epic': request.form.get('epic'),
-                'company': request.form.get('company'),
+                'epic': request.form.get('epic').upper(),
                 'status': request.form.get('status'),
                 'comment': request.form.get('comment')
             }}
+            
             flash(valid)
             if valid:
                 data = [session['user_id'], 1, share['epic'], share['company'], share['status'],
@@ -128,7 +132,7 @@ def shares():
                         share['sellprice'], share['selltradecost'], share['totalsale'], share['comment']]
                         
                 try:
-                   cursor.execute('INSERT INTO shares (userid, portfolio, epic, company, status, buydate, buyprice, quantity, stampduty, buytradecost, buycost, target, stoploss, sellprice, selltradecost, totalsale, comment) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', data)
+                   cursor.execute('INSERT INTO shares (userid, portfolio, epic, status, buydate, buyprice, quantity, stampduty, buytradecost, buycost, target, stoploss, sellprice, selltradecost, totalsale, comment) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', data)
                    conn.commit()
                 except Exception as e:
                     flash(e)
@@ -137,7 +141,7 @@ def shares():
             if valid:
                return redirect(url_for('index'))
             else:    
-                return render_template('shares.html', companies=companies, share=share)
+                return render_template('shares.html', share=share)
             
         elif request.form.get('submit') == 'update':
             data = [request.form.get('status'), request.form.get('buydate'), request.form.get('buyprice'),
@@ -154,7 +158,7 @@ def shares():
     elif request.method == 'GET':
         try:
             id = int(request.args.get('id'))
-            cursor.execute('SELECT * FROM shares INNER JOIN companylist ON shares.company=companylist.company WHERE userid=%s AND id=%s', [session['user_id'], id])
+            cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s', [session['user_id'], id])
             share = cursor.fetchall()
             numRows = len(share)
         except TypeError:
@@ -167,12 +171,7 @@ def shares():
             daysHeld = (datetime.datetime.now() - share[0]['buydate']).days
         else:
             daysHeld = (share[0]['selldate'] - share[0]['buydate']).days
-        return render_template('shares.html', companies=companies, share=share[0], daysHeld=daysHeld)
-
-@app.route('/submit', methods=['POST'])
-def submit():
-    flash('Added')
-    return "hello"
+        return render_template('shares.html', share=share[0], daysHeld=daysHeld)
 
 @app.route('/statement')
 @login_required
@@ -180,7 +179,7 @@ def statement():
     statement = []
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM shares WHERE userid=%s AND portfolio=1 AND buydate>0', [session['user_id']])
+    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=1 AND buydate>0', [session['user_id']])
     data = cursor.fetchall()
     for row in data:
         statement.append({
@@ -192,7 +191,7 @@ def statement():
             'notes': '',
             'type': 'buy'
         })
-    cursor.execute('SELECT * FROM shares WHERE userid=%s AND portfolio=1 AND selldate>0', [session['user_id']])
+    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=1 AND selldate>0', [session['user_id']])
     data = cursor.fetchall()
     for row in data:
         statement.append({
@@ -321,7 +320,7 @@ def bid():
 def company():
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('SELECT epic, epic.company, market, sector, subsector FROM epic INNER JOIN companylist ON epic.company=companylist.company WHERE epic=%s', [request.args.get('epic')])
+    cursor.execute('SELECT * FROM companies WHERE symbol=%s', [request.args.get('epic')])
     data = cursor.fetchall()
     return jsonify(data)
 
