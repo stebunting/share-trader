@@ -107,12 +107,28 @@ function refreshPrices() {
         $btn.button('reset');
     
         // Update last updated time
-        lastUpdate = new Date();
+        var lastUpdate = new Date();
         $('#lastupdated').text(lastUpdate.format('ddd dd mmm @ hh:MM:sstt'));
     });
     
 }
 
+    
+// Log Current State
+function logState() {
+    var exposure = $('#exposure').text().replace('£', '').replace(',', '');
+    
+    // Send updated data back to application to store to database
+    var xhr = new XMLHttpRequest();
+    xhr.open('post', '/updatelog', true);
+    xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+    xhr.send(JSON.stringify(exposure));
+    
+    var lastlog = new Date();
+    $('#lastlog').text(lastlog.format('ddd dd mmm @ hh:MM:sstt'));
+    $('#logState').button('loading');
+}
+    
 $(function() {
     // Index Page
     // Sends updated data for storing when target/stop loss edited directly from table

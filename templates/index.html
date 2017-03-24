@@ -9,6 +9,7 @@
             <a href="https://www.iwebsharedealing.co.uk/_mem_bin/Formslogin.asp" target="_blank" class="btn btn-primary" role="button">iWeb Share Dealing</a>
             <a href="https://online.hl.co.uk/my-accounts/login-step-one" target="_blank" class="btn btn-primary" role="button">Hargreaves Lansdown</a>
             <input type="button" class="btn btn-primary" id="refreshPrices" value="Refresh Prices" data-loading-text="Refreshing..." onclick="refreshPrices()" autocomplete="off">
+            <input type="button" class="btn btn-primary" id="logState" value="Log State" data-loading-text="Logged!" onclick="logState()">
         </div>
         <div class="col-md-5">
             <div class="panel panel-primary">
@@ -41,8 +42,12 @@
                         <div class="col-md-7" id="percentage">{% if portfolio['portfoliocapital'] != 0 %}{{ ((100 * ((details['market_exposure'] - details['sale_costs'] + portfolio['portfoliocash']) / portfolio['portfoliocapital'])) - 100)|percentage }}{% else %}{{ 0|percentage }}{% endif %}</div>
                     </div>
                     <div class="row">
+                        <div class="col-md-5">Last Log</div>
+                        <div class="col-md-7" id="lastlog">{% if portfolio['lastlog'] %}{{ portfolio['lastlog'] }}{% endif %}</div>
+                    </div>
+                    <div class="row">
                         <div class="col-md-5">Last Updated</div>
-                        <div class="col-md-7" id="lastupdated">{{ lastupdated }}</div>
+                        <div class="col-md-7" id="lastupdated">{{ portfolio['lastupdated'] }}</div>
                     </div>
                 </div>
             </div>

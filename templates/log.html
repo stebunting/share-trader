@@ -4,5 +4,24 @@
 
 {% block body %}
     <h1>Log</h1>
-
+    <table class="table table-striped">
+    	<thead>
+    		<tr>
+            	<th>Date</th>
+            	<th>Market Exposure</th>
+            	<th>Capital</th>
+            	<th>Cash</th>
+            	<th>FTSE 100</th>
+            </tr>
+        </thead>
+    	<tbody>
+        	{% for item in log %}<tr>
+                <td>{{ item['date']|dateFormat }}</td>
+                <td>{{ item['exposure']|gbp }}</td>
+                <td>{{ item['capital']|gbp }}</td>
+                <td>{{ item['cash']|gbp }}</td>
+                <td>{{ item['ftse100']|shareprice }}</td>
+            </tr>{% endfor %}
+        </tbody>
+    </table>
 {% endblock %}

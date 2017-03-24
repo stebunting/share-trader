@@ -49,9 +49,11 @@ def index():
         details['market_exposure'] += row['sellprice'] * row['quantity'] * 0.01
         details['sale_costs'] += row['selltradecost']
     
-    lastupdated = portfolio['lastupdated'].strftime('%a %d %b @ %I:%M:%S')
+    portfolio['lastupdated'] = portfolio['lastupdated'].strftime('%a %d %b @ %I:%M:%S%p')
+    if portfolio['lastlog']:
+        portfolio['lastlog'] = portfolio['lastlog'].strftime('%a %d %b @ %I:%M:%S%p')
     
-    return render_template('index.html', data=data, details=details, portfolio=portfolio, lastupdated=lastupdated)
+    return render_template('index.html', data=data, details=details, portfolio=portfolio)
 
 
 
@@ -323,8 +325,8 @@ def cash():
         
         conn = mysql.connect()
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO cash (userid, amount, categoryid, notes, date) VALUES (%s, %s, %s, %s, %s)',
-            [session['user_id'], cash_amount, request.form.get('cash_category'), request.form.get('cash_notes'), request.form.get('cash_date')])
+        cursor.execute('INSERT INTO cash (userid, portfolio, amount, categoryid, notes, date) VALUES (%s, %s, %s, %s, %s, %s)',
+            [session['user_id'], session['portfolio'], cash_amount, request.form.get('cash_category'), request.form.get('cash_notes'), request.form.get('cash_date')])
         conn.commit()
 
         # Update users capital invested        
@@ -359,7 +361,25 @@ def cash():
 @app.route('/log')
 @login_required
 def log():
-    return render_template('log.html')
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC', [session['user_id'], session['portfolio']])
+    log = cursor.fetchall()
+    
+    # Update capital/cash in logging
+    """for i in range(len(log)):
+        cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolio=%s', [log[i]['date'], session['user_id'], session['portfolio']])
+        capital = float(cursor.fetchone()['capital'])
+        cursor.execute('SELECT SUM(amount) AS csh FROM cash WHERE date<=%s AND userid=%s AND portfolio=%s', [log[i]['date'], session['user_id'], session['portfolio']])
+        cash = float(cursor.fetchone()['csh'])
+        cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolio=%s', [log[i]['date'], session['user_id'], session['portfolio']])
+        buys = float(cursor.fetchone()['buys'])
+        cursor.execute('SELECT SUM(totalsale) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolio=%s', [log[i]['date'], session['user_id'], session['portfolio']])
+        sells = float(cursor.fetchone()['sells'])
+        cursor.execute('UPDATE log SET capital=%s, cash=%s WHERE id=%s', [capital, cash - buys + sells, log[i]['id']])
+        conn.commit()"""
+    
+    return render_template('log.html', log=log)
 
 @app.route('/updatesharedata')
 def symbols():
@@ -368,28 +388,38 @@ def symbols():
     cursor.execute('SELECT * FROM shares WHERE userid=%s AND portfolio=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     
-    payload = {
-        'login_username': 'sharetrader6',
-        'login_password': 'st54st54',
-        'redirect_url': 'aHR0cDovL3VrLmFkdmZuLmNvbS9jb21tb24vYWNjb3VudC9sb2dpbg==',
-        'site': 'uk'
-    }
-    session_requests = requests.session()
-    result = session_requests.get('http://uk.advfn.com/common/account/login')
-    tree = html.fromstring(result.text)
-    payload['redirect_url'] = list(set(tree.xpath("//input[@name='redirect_url']/@value")))[0]
-    result = session_requests.post(
-        'https://secure.advfn.com/login/secure', 
-        data = payload, 
-        headers = dict(referer='http://uk.advfn.com/common/account/login')
-    )
+    quoteLogin()
     for i in range(cursor.rowcount):
         data[i]['bid'] = quote(data[i]['epic'])
     return jsonify(data)
 
+# Route to accept data back from Javascript to update log
+@app.route('/updatelog', methods=['GET', 'POST'])
+def updatelog():
+    exposure = request.get_json()
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    date = datetime.datetime.now()
+    
+    quoteLogin()
+    ftse100 = quote('UKX', 'price')
+    cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolio=%s', [date, session['user_id'], session['portfolio']])
+    capital = float(cursor.fetchone()['capital'])
+    cursor.execute('SELECT SUM(amount) AS csh FROM cash WHERE date<=%s AND userid=%s AND portfolio=%s', [date, session['user_id'], session['portfolio']])
+    cash = float(cursor.fetchone()['csh'])
+    cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolio=%s', [date, session['user_id'], session['portfolio']])
+    buys = float(cursor.fetchone()['buys'])
+    cursor.execute('SELECT SUM(totalsale) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolio=%s', [date, session['user_id'], session['portfolio']])
+    sells = float(cursor.fetchone()['sells'])
+    cursor.execute('INSERT INTO log (userid, portfolioid, exposure, capital, cash, ftse100) VALUES (%s, %s, %s, %s, %s, %s)', [session['user_id'], session['portfolio'], exposure, capital, cash - buys + sells, ftse100])
+    cursor.execute('UPDATE portfolio SET lastlog=NOW() WHERE portfolioid=%s', [session['portfolio']])
+    conn.commit()
+    
+    return '1'
+    
 # Route to accept share data back from Javascript to update database
 @app.route('/updatedb', methods=['POST'])
-def update():
+def updatedb():
     content = request.get_json()
     conn = mysql.connect()
     cursor = conn.cursor()
