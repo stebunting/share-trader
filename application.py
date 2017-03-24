@@ -37,9 +37,9 @@ app.jinja_env.filters['dateFormat'] = dateFormat
 def index():
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=1 AND status=1 ORDER BY epic ASC', [session['user_id']])
+    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     data = cursor.fetchall()
-    cursor.execute('SELECT * FROM portfolio WHERE userid=%s AND portfolioid=1', [session['user_id']])
+    cursor.execute('SELECT * FROM portfolio WHERE userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
     portfolio = cursor.fetchone()
     details = {
         'market_exposure': 0,
@@ -49,7 +49,7 @@ def index():
         details['market_exposure'] += row['sellprice'] * row['quantity'] * 0.01
         details['sale_costs'] += row['selltradecost']
     
-    lastupdated = portfolio['lastupdated'].strftime('%a %d %b @ %I:%M:%S%p')
+    lastupdated = portfolio['lastupdated'].strftime('%a %d %b @ %I:%M:%S')
     
     return render_template('index.html', data=data, details=details, portfolio=portfolio, lastupdated=lastupdated)
 
@@ -78,7 +78,20 @@ def shares():
         if submit == 'delete':
             cursor.execute('DELETE FROM shares WHERE id=%s', [id])
             conn.commit()
-            return redirect(url_for('shares'))
+            cursor.execute('SELECT id FROM shares ORDER BY id ASC')
+            data = cursor.fetchall()
+            j = 0
+            if data[-1]['id'] < id:
+                j = data[-1]['id']
+            else:
+                for i in range(len(data) - 1, -1, -1):
+                    print(data[i]['id'])
+                    if data[i]['id'] > id:
+                        j = data[i]['id']
+            id = j
+            submit = 'update'
+            cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s AND portfolio=%s', [session['user_id'], id, session['portfolio']])
+            share = cursor.fetchone()
         
         else:
         
@@ -187,28 +200,27 @@ def shares():
         # Get submit and id variables
         submit = request.args.get('submit')
         id = request.args.get('id')
-    
+        
         # Verify submit/id and get share data from database if updating
-        if submit != 'update': submit = 'submit'
-        if submit == 'update':
+        if submit != 'submit':
+            submit = 'update'
             try:
                 id = int(id)
             except TypeError:
-                submit = 'submit'
-        if submit == 'update':
-            try:
-                cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s AND portfolio=1', [session['user_id'], id])
-                share = cursor.fetchone()
-            except Exception as e:
-                flash(e)
-                pass
+                id = None
+            if id:
+                cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s AND portfolio=%s', [session['user_id'], id, session['portfolio']])
+            else:
+                cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=%s ORDER BY id DESC LIMIT 1', [session['user_id'], session['portfolio']])
+            share = cursor.fetchone()
+            id = share['id']
             if cursor.rowcount == 0:
                 submit = 'submit'
     
     # Create 'nav' dictionary to store navigation variables
     # numEntries, previd, nextid, lastid
     nav = {}
-    cursor.execute('SELECT id FROM shares WHERE userid=%s AND portfolio=1 ORDER BY id ASC', [session['user_id']])
+    cursor.execute('SELECT id FROM shares WHERE userid=%s AND portfolio=%s ORDER BY id ASC', [session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     nav['numEntries'] = cursor.rowcount
     nav['lastid'] = data[-1]['id']
@@ -231,7 +243,7 @@ def shares():
         if share['selldate'] == None:
             share['daysHeld'] = (datetime.datetime.now() - buyDatetime).days
         else:
-            sellDatetime = datetime.datetime.strptime(share['selldate'], '%Y-%m-%d %H:%M:%S')
+            sellDatetime = datetime.datetime.strptime(str(share['selldate']), '%Y-%m-%d %H:%M:%S')
             share['daysHeld'] = (sellDatetime - buyDatetime).days
         
     return render_template('shares.html', nav=nav, share=share, submit=submit)
@@ -246,7 +258,7 @@ def statement():
     statement = []
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=1 AND buydate>0', [session['user_id']])
+    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=%s AND buydate>0', [session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     for row in data:
         statement.append({
@@ -258,7 +270,7 @@ def statement():
             'notes': '',
             'type': 'buy'
         })
-    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=1 AND selldate>0', [session['user_id']])
+    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=%s AND selldate>0', [session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     for row in data:
         statement.append({
@@ -322,9 +334,9 @@ def cash():
             conn.commit()
 
         # Update user's cash
-        cursor.execute('SELECT SUM(buycost) AS debit FROM shares WHERE userid=%s AND portfolio=1', [session['user_id']])
+        cursor.execute('SELECT SUM(buycost) AS debit FROM shares WHERE userid=%s AND portfolio=%s', [session['user_id'], session['portfolio']])
         debitdata = cursor.fetchone()
-        cursor.execute('SELECT SUM(totalsale) AS credit FROM shares WHERE userid=%s AND portfolio=1 and status=0', [session['user_id']])
+        cursor.execute('SELECT SUM(totalsale) AS credit FROM shares WHERE userid=%s AND portfolio=%s and status=0', [session['user_id'], session['portfolio']])
         creditdata = cursor.fetchone()
         cursor.execute('SELECT SUM(amount) AS cash FROM cash WHERE userid=%s', [session['user_id']])
         cashdata = cursor.fetchone()
@@ -343,13 +355,17 @@ def cash():
     if request.method == 'GET':
         return render_template('cash.html', cash_categories=cash_categories)
     
-    
+
+@app.route('/log')
+@login_required
+def log():
+    return render_template('log.html')
 
 @app.route('/updatesharedata')
 def symbols():
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM shares WHERE userid=%s AND portfolio=1 AND status=1 ORDER BY epic ASC', [session['user_id']])
+    cursor.execute('SELECT * FROM shares WHERE userid=%s AND portfolio=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     
     payload = {
@@ -410,30 +426,38 @@ def company():
     data = cursor.fetchall()
     return jsonify(data)
 
-@app.route('/register', methods=['POST'])
+@app.route('/register', methods=['GET', 'POST'])
 def register():
         
     # Check for errors
-    if not request.form.get('username'):
-        return render_template('register.html', username='')
-    elif not request.form.get('password') or not request.form.get('confirmpassword') or request.form.get('password') != request.form.get('confirmpassword'):
-        return render_template('register.html', username=request.form.get('username'))
+    if not request.form.get('reg_username'):
+        return render_template('register.html', reg_username='')
+    elif not request.form.get('reg_password') or not request.form.get('reg_confirmpassword') or request.form.get('reg_password') != request.form.get('reg_confirmpassword'):
+        return render_template('register.html', reg_username=request.form.get('reg_username'))
     
-    # Insert new user into database
+    # Insert new user into database and new portfolio
     conn = mysql.connect()
     cursor = conn.cursor()
     try:
-        cursor.execute('INSERT INTO users (username, password) VALUES (:username, :password)',
-            [request.form.get('username'), pwd_context.encrypt(request.form.get("password"))])
+        print("HELLO")
+        cursor.execute('INSERT INTO users (username, password) VALUES (%s, %s)',
+            [request.form.get('reg_username'), pwd_context.encrypt(request.form.get('reg_password'))])
     except:
         # Username already taken
         flash('Username already taken')
-        return render_template('register.html', username='')
+        return render_template('register.html', reg_username='')
+    conn.commit()
+    
+    # Add default portfolio
+    id = cursor.lastrowid
+    cursor.execute('INSERT INTO portfolio (userid, portfolioname) VALUES (%s, %s)', [id, 'Main'])
+    defaultportfolio = cursor.lastrowid
+    cursor.execute('UPDATE users SET defaultportfolio=%s WHERE id=%s', [defaultportfolio, id])
     conn.commit()
     
     # Set user as logged in
-    id = cursor.lastrowid
     session['user_id'] = id
+    session['portfolio'] = defaultportfolio
     flash("Registered! Hello {}!".format('username'))
     
     # Load index page
@@ -452,17 +476,19 @@ def login():
     cursor.execute('SELECT * FROM users WHERE username=%s', [request.form.get('login_username')])
     
     if cursor.rowcount == 1:
-        data = cursor.fetchall()
-        if pwd_context.verify(request.form.get('login_password'), data[0]['password']):
-            session['user_id'] = data[0]['id']
+        data = cursor.fetchone()
+        if pwd_context.verify(request.form.get('login_password'), data['password']):
+            session['user_id'] = data['id']
             session['username'] = request.form.get('login_username')
             if request.form.get('login_remember') == 'on':
                 session['password'] = request.form.get('login_password')
                 session['rememberme'] = 1
+                session['portfolio'] = data['defaultportfolio']
             else:
                 session.pop('username', None)
                 session.pop('password', None)
                 session.pop('rememberme', None)
+                session.pop('portfolio', None)
             flash('Logged in. Welcome back {}.'.format(request.form.get('login_username')))
     
     # Load index page

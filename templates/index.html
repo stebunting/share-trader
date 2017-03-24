@@ -38,7 +38,7 @@
                     </div>
                     <div class="row">
                         <div class="col-md-5"></div>
-                        <div class="col-md-7" id="percentage">{{ ((100 * ((details['market_exposure'] - details['sale_costs'] + portfolio['portfoliocash']) / portfolio['portfoliocapital'])) - 100)|percentage }}</div>
+                        <div class="col-md-7" id="percentage">{% if portfolio['portfoliocapital'] != 0 %}{{ ((100 * ((details['market_exposure'] - details['sale_costs'] + portfolio['portfoliocash']) / portfolio['portfoliocapital'])) - 100)|percentage }}{% else %}{{ 0|percentage }}{% endif %}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Last Updated</div>

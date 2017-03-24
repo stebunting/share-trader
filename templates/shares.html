@@ -9,7 +9,7 @@
         </div>
         <div class="col-md-5">
             <div class="btn-group" role="group">
-                <a href="{{ url_for('shares') }}" type="button" class="btn btn-danger">New</a>
+                <a href="{{ url_for('shares') }}?submit=submit" type="button" class="btn btn-danger">New</a>
             </div>
             <div class="btn-group" role="group">
                 <a href="{{ url_for('shares') }}?submit=update&id={{ nav['lastid'] }}" type="button" class="btn btn-primary">Historical</a>
@@ -205,7 +205,7 @@
                         <div class="form-group">
                             <label class="control-label col-md-4" for="selldate">Sale Date</label>
                             <div class="col-md-8">
-                                <input type="text" class="form-control datepicker" id="selldate" name="selldate" placeholder="Sell Date" value="{% if method != 'submit' or share['selldate'] %}{{ share['selldate'] }}{% endif %}">
+                                <input type="text" class="form-control datepicker" id="selldate" name="selldate" placeholder="Sell Date" value="{% if method != 'submit' and share['selldate'] != None %}{{ share['selldate'] }}{% endif %}">
                             </div>
                         </div>
                         <div class="form-group">

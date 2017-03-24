@@ -108,7 +108,7 @@ function refreshPrices() {
     
         // Update last updated time
         lastUpdate = new Date();
-        $('#lastupdated').text(lastUpdate.format('ddd dd mmm @ hh:MMsstt'));
+        $('#lastupdated').text(lastUpdate.format('ddd dd mmm @ hh:MM:sstt'));
     });
     
 }
@@ -208,6 +208,10 @@ $(function() {
             if (data != '') {
                 $('#company').text(data[0]['company']);
                 $('#company').attr('value', data[0]['company']);
+                $('.advfn-logo').remove();
+                if ($('#company').parent().is('#advfndiv')) {
+                    $('#company').unwrap();
+                }
                 $('#company').wrap('<div class="input-group" id="advfndiv">');
                 $('#advfndiv').append('<span class="input-group-addon advfn-logo"><a href="http://uk.advfn.com/p.php?pid=financials&symbol=LSE:' + $('#epic').val().toUpperCase() + '" target="_blank"><img src="/static/images/advfn-logo.png" /></a></span>')
             } else {

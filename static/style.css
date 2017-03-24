@@ -8,6 +8,10 @@ td > a:hover {
     text-decoration: none;
 }
 
+#changeportfolio {
+    float: right;
+}
+
 /* Broker Links on Index */
 a:hover.btn {
     font-weight: bold;
