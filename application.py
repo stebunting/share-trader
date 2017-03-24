@@ -49,7 +49,7 @@ def index():
         details['market_exposure'] += row['sellprice'] * row['quantity'] * 0.01
         details['sale_costs'] += row['selltradecost']
     
-    lastupdated = portfolio['lastupdated'].strftime('%a %d %b @ %I:%M%p')
+    lastupdated = portfolio['lastupdated'].strftime('%a %d %b @ %I:%M:%S%p')
     
     return render_template('index.html', data=data, details=details, portfolio=portfolio, lastupdated=lastupdated)
 
@@ -345,25 +345,46 @@ def cash():
     
     
 
-@app.route('/symbols')
+@app.route('/updatesharedata')
 def symbols():
     conn = mysql.connect()
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM shares WHERE userid=%s AND portfolio=1 AND status=1 ORDER BY epic ASC', [session['user_id']])
     data = cursor.fetchall()
+    
+    payload = {
+        'login_username': 'sharetrader6',
+        'login_password': 'st54st54',
+        'redirect_url': 'aHR0cDovL3VrLmFkdmZuLmNvbS9jb21tb24vYWNjb3VudC9sb2dpbg==',
+        'site': 'uk'
+    }
+    session_requests = requests.session()
+    result = session_requests.get('http://uk.advfn.com/common/account/login')
+    tree = html.fromstring(result.text)
+    payload['redirect_url'] = list(set(tree.xpath("//input[@name='redirect_url']/@value")))[0]
+    result = session_requests.post(
+        'https://secure.advfn.com/login/secure', 
+        data = payload, 
+        headers = dict(referer='http://uk.advfn.com/common/account/login')
+    )
+    for i in range(cursor.rowcount):
+        data[i]['bid'] = quote(data[i]['epic'])
     return jsonify(data)
 
-@app.route('/update', methods=['POST'])
+# Route to accept share data back from Javascript to update database
+@app.route('/updatedb', methods=['POST'])
 def update():
     content = request.get_json()
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('UPDATE shares SET sellprice=%s, totalsale=%s, profitloss=%s, percentage=%s WHERE userid=%s AND id=%s',
-        [content['bid'], content['value'], content['profitloss'], content['percentage'], session['user_id'], content['id']])
-    cursor.execute('UPDATE portfolio SET lastupdated=NOW() WHERE userid=%s AND portfolioid=1', [session['user_id']])
-    conn.commit()
+    for row in content:
+        cursor.execute('UPDATE shares SET sellprice=%s, totalsale=%s, profitloss=%s, percentage=%s WHERE userid=%s AND id=%s',
+            [row['bid'], row['value'], row['profitloss'], row['percentage'], session['user_id'], row['id']])
+        cursor.execute('UPDATE portfolio SET lastupdated=NOW() WHERE userid=%s AND portfolioid=1', [session['user_id']])
+        conn.commit()
     return '1'
-    
+
+# Route to accept target/stop loss data back from index page to update database
 @app.route('/updateindex', methods=['POST'])
 def updateindex():
     content = request.get_json()
@@ -380,25 +401,6 @@ def updateindex():
     except:
         pass
     return '1'
-        
-@app.route('/bid')
-def bid():
-    payload = {
-        'login_username': 'sharetrader6',
-        'login_password': 'st54st54',
-        'redirect_url': 'aHR0cDovL3VrLmFkdmZuLmNvbS9jb21tb24vYWNjb3VudC9sb2dpbg==',
-        'site': 'uk'
-    }
-    session_requests = requests.session()
-    result = session_requests.get('http://uk.advfn.com/common/account/login')
-    tree = html.fromstring(result.text)
-    payload['redirect_url'] = list(set(tree.xpath("//input[@name='redirect_url']/@value")))[0]
-    result = session_requests.post(
-        'https://secure.advfn.com/login/secure', 
-        data = payload, 
-        headers = dict(referer='http://uk.advfn.com/common/account/login')
-    )
-    return quote(request.args.get('epic'))
 
 @app.route('/company')
 def company():

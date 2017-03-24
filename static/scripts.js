@@ -1,7 +1,3 @@
-var $btn;
-var numRequests;
-var requestCounter = 0;
-
 function getValue(id) {
     return parseFloat($('#' + id).text().replace('£', '').replace(',', ''))
 }
@@ -51,74 +47,69 @@ function updateCellColours(ident) {
 
 // Get bid price and update cell in table
 function updateBid(company) {
-    $.getJSON('/bid?epic=' + company['epic'], function(bid) {
-        var value = bid * company['quantity'] * 0.01
-        var costs = company['buytradecost'] + company['selltradecost'] + company['stampduty']
-        var profitloss = value - (company['buyprice'] * company['quantity'] * 0.01) - costs
-        var percentage = ((10000 * (value - costs) / (company['buyprice'] * company['quantity'])) - 100)
-        // Update row
-        var ident = '#' + company['id'] + '-' + company['epic'] + '-'
-        $(ident + 'bid').text(bid.toFixed(2))
-        $(ident + 'value').text(gbp(value))
-        $(ident + 'profitloss').text(gbp(profitloss))
-        $(ident + 'percentage').text(percent(percentage))
-        
-        var change = value - (company['sellprice'] * company['quantity'] * 0.01)
-        
-        // Calculate market exposure
-        var exposure = getValue('exposure') + change
-        $('#exposure').text(gbp(exposure))
-        
-        // Calculate current sale value
-        var salevalue = getValue('salevalue') + change
-        $('#salevalue').text(gbp(salevalue))
-        
-        // Calculate profit/loss
-        var totalprofitloss = getValue('profitloss') + change
-        $('#profitloss').text(gbp(totalprofitloss))
-        
-        // Calculate percentage
-        totalpercentage = 100 * ((salevalue + getValue('cash')) / getValue('capital')) - 100
-        $('#percentage').text(percent(totalpercentage))
-        
-        updateCellColours(ident)
-        
-        data = {
-            'id': company['id'],
-            'bid': bid,
-            'value': value,
-            'profitloss': profitloss,
-            'percentage': percentage
-        }
-        
-        // Send updated data back to application to store to database
-        var xhr = new XMLHttpRequest();
-        xhr.open('post', '/update', true);
-        xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-        xhr.send(JSON.stringify(data));
-        
-        requestCounter += 1;
-        if (requestCounter == 8) {
-            $btn.button('reset');
-        
-            // Update last updated time
-            lastUpdate = new Date();
-            $('#lastupdated').text(lastUpdate.format('ddd dd mmm @ hh:MMtt'));
-            
-            requestCounter = 0;
-        }
-    })
+    var value = company['bid'] * company['quantity'] * 0.01
+    var costs = company['buytradecost'] + company['selltradecost'] + company['stampduty']
+    var profitloss = value - (company['buyprice'] * company['quantity'] * 0.01) - costs
+    var percentage = ((10000 * (value - costs) / (company['buyprice'] * company['quantity'])) - 100)
+    // Update row
+    var ident = '#' + company['id'] + '-' + company['epic'] + '-'
+    $(ident + 'bid').text(company['bid'].toFixed(2))
+    $(ident + 'value').text(gbp(value))
+    $(ident + 'profitloss').text(gbp(profitloss))
+    $(ident + 'percentage').text(percent(percentage))
+    
+    var change = value - (company['sellprice'] * company['quantity'] * 0.01)
+    
+    // Calculate market exposure
+    var exposure = getValue('exposure') + change
+    $('#exposure').text(gbp(exposure))
+    
+    // Calculate current sale value
+    var salevalue = getValue('salevalue') + change
+    $('#salevalue').text(gbp(salevalue))
+    
+    // Calculate profit/loss
+    var totalprofitloss = getValue('profitloss') + change
+    $('#profitloss').text(gbp(totalprofitloss))
+    
+    // Calculate percentage
+    totalpercentage = 100 * ((salevalue + getValue('cash')) / getValue('capital')) - 100
+    $('#percentage').text(percent(totalpercentage))
+    
+    updateCellColours(ident)
+    
+    data = {
+        'id': company['id'],
+        'bid': company['bid'],
+        'value': value,
+        'profitloss': profitloss,
+        'percentage': percentage
+    }
+    return data;
 }
 
-// Get symbols required to update bid prices
+// Get updated share price data
 function refreshPrices() {
-    $btn = $('#refreshPrices').button('loading');
-    $.getJSON('/symbols', function(data) {
-        numRequests = Object.keys(data).length;
+    var $btn = $('#refreshPrices').button('loading');
+    $.getJSON('/updatesharedata', function(data) {
+        returnData = []
         $.each(data, function(key, val) {
-            updateBid(val);
+            returnData.push(updateBid(val));
         });
-    })
+    }).done(function() {
+        // Send updated data back to application to store to database
+        var xhr = new XMLHttpRequest();
+        xhr.open('post', '/updatedb', true);
+        xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+        xhr.send(JSON.stringify(returnData));
+    
+        // When done, set refresh button active
+        $btn.button('reset');
+    
+        // Update last updated time
+        lastUpdate = new Date();
+        $('#lastupdated').text(lastUpdate.format('ddd dd mmm @ hh:MMsstt'));
+    });
     
 }
 
@@ -210,6 +201,8 @@ $(function() {
         $('#stoploss').focus().val(targetprice.toFixed(2));
     });
     
+    // Shares Page
+    // Updates company and ADVFN link when EPIC changed
     $('#epic').keyup(function() {
         $.getJSON('/company?epic=' + $('#epic').val(), function(data) {
             if (data != '') {
