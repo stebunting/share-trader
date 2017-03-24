@@ -103,7 +103,7 @@ function updateBid(company) {
         
             // Update last updated time
             lastUpdate = new Date();
-            $('#lastupdated').text(lastUpdate.format('ddd mm mmm @ hh:MMtt'));
+            $('#lastupdated').text(lastUpdate.format('ddd dd mmm @ hh:MMtt'));
             
             requestCounter = 0;
         }
@@ -149,7 +149,12 @@ $(function() {
         $entry.datetimepicker({
             setDate: $entry.attr('value'),
             dateFormat: 'yy-mm-dd',
-            timeFormat: 'HH:mm:ss'
+            timeFormat: 'HH:mm:ss',
+            beforeShow: function() {
+                setTimeout(function(){
+                    $('.ui-datepicker').css('z-index', 99999999999999);
+                }, 0);
+            }
         });
     });
     
@@ -210,10 +215,15 @@ $(function() {
             if (data != '') {
                 $('#company').text(data[0]['company']);
                 $('#company').attr('value', data[0]['company']);
-                
+                $('#company').wrap('<div class="input-group" id="advfndiv">');
+                $('#advfndiv').append('<span class="input-group-addon advfn-logo"><a href="http://uk.advfn.com/p.php?pid=financials&symbol=LSE:' + $('#epic').val().toUpperCase() + '" target="_blank"><img src="/static/images/advfn-logo.png" /></a></span>')
             } else {
                 $('#company').text('');
                 $('#company').attr('value', '');
+                $('.advfn-logo').remove();
+                if ($('#company').parent().is('#advfndiv')) {
+                    $('#company').unwrap();
+                }
             }
         });
     });
