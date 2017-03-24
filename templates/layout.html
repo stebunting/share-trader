@@ -20,8 +20,11 @@
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='jquery-ui-timepicker-addon.css') }}">
+    <script src="{{ url_for('static', filename='date.format.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts.js') }}"></script>
     <script src="{{ url_for('static', filename='validator.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='jquery-ui-timepicker-addon.js') }}"></script>
     <title>Share Trader | {% block title %}{% endblock %}</title>
 </head>
 
@@ -87,13 +90,13 @@
                                 <div class="form-group">
                                     <label for="login_username" class="col-md-3 control-label">Username</label>
                                     <div class="col-md-9">
-                                        <input type="text" class="form-control" id="login_username" name="login_username" placeholder="Username"{% if session.username %} value="{{ session.username }}"{% endif %}>
+                                        <input type="text" class="form-control" maxlength="30" id="login_username" name="login_username" placeholder="Username"{% if session.username %} value="{{ session.username }}"{% endif %}>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="login_password" class="col-md-3 control-label">Password</label>
                                     <div class="col-md-9">
-                                        <input type="password" class="form-control" id="login_password" name="login_password" placeholder="Password"{% if session.password %} value="{{ session.password }}"{% endif %}>
+                                        <input type="password" class="form-control" maxlength="30" id="login_password" name="login_password" placeholder="Password"{% if session.password %} value="{{ session.password }}"{% endif %}>
                                     </div>
                                 </div>
                                 <div class="form-group">

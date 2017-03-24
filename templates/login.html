@@ -14,13 +14,13 @@
                 <div class="form-group">
                     <label for="login_username" class="col-md-3 control-label">Username</label>
                     <div class="col-md-9">
-                        <input type="text" class="form-control" id="login_username" name="login_username" placeholder="Username"{% if session.username %} value="{{ session.username }}"{% endif %}>
+                        <input type="text" class="form-control" maxlength="30" id="login_username" name="login_username" placeholder="Username"{% if session.username %} value="{{ session.username }}"{% endif %}>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="login_password" class="col-md-3 control-label">Password</label>
                     <div class="col-md-9">
-                        <input type="password" class="form-control" id="login_password" name="login_password" placeholder="Password"{% if session.username %} value="{{ session.password }}"{% endif %}>
+                        <input type="password" class="form-control" maxlength="30" id="login_password" name="login_password" placeholder="Password"{% if session.username %} value="{{ session.password }}"{% endif %}>
                     </div>
                 </div>
                 <div class="form-group">

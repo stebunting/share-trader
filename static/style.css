@@ -1,24 +1,32 @@
-td a:link, a:visited {
+/* Inline Target / Stop Loss on Index */
+td > a:link, td > a:visited {
     color: #000000;
 }
 
-td a:hover {
+td > a:hover {
     font-weight: bold;
     text-decoration: none;
 }
 
-a:visited.btn {
-    color: #FFFFFF;
+/* Broker Links on Index */
+a:hover.btn {
+    font-weight: bold;
 }
 
 .dropdown-form {
     width: 400px;
 }
 
+/* ?? */
 input.targetinput input.stoplossinput {
     border: 0;
     margin: 0;
     padding: 0;
     white-space: nowrap;
     width: 100%px;
+}
+
+.btn-static:hover, .btn-static:focus {
+    background-position: 0px;
+    border-color: #ccc;
 }

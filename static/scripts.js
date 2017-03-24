@@ -102,8 +102,8 @@ function updateBid(company) {
             $btn.button('reset');
         
             // Update last updated time
-            var now = new Date().toLocaleString()
-            $('#lastupdated').text(now)
+            lastUpdate = new Date();
+            $('#lastupdated').text(lastUpdate.format('ddd mm mmm @ hh:MMtt'));
             
             requestCounter = 0;
         }
@@ -123,6 +123,8 @@ function refreshPrices() {
 }
 
 $(function() {
+    // Index Page
+    // Sends updated data for storing when target/stop loss edited directly from table
     $('.indexform').keydown(function(e){
         if(e.keyCode == 13){
             var ident = $(this).attr('id')
@@ -137,11 +139,19 @@ $(function() {
         }
     })
     
-    $('.datepicker').datepicker();
-    $('#anim').on('change', function() {
-        $('.datepicker').datepicker('option', 'showAnim', 'slideDown');
+    // Share Page
+    // Implement 2 datepickers on buydate and selldate
+    var $datepickers = [$('#buydate'), $('#selldate')];
+    $datepickers.forEach(function($entry) {
+        //$('#anim').on('change', function() {
+        //    $entry.datetimepicker('option', 'showAnim', 'slideDown');
+        //});
+        $entry.datetimepicker({
+            setDate: $entry.attr('value'),
+            dateFormat: 'yy-mm-dd',
+            timeFormat: 'HH:mm:ss'
+        });
     });
-    $('.datepicker').datepicker('option', 'dateFormat', 'yy-mm-dd');
     
     $('#stampdutycalculate').click(function() {
         var stampduty = 0;

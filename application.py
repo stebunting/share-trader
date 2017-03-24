@@ -48,45 +48,63 @@ def index():
     for row in data:
         details['market_exposure'] += row['sellprice'] * row['quantity'] * 0.01
         details['sale_costs'] += row['selltradecost']
-    return render_template('index.html', data=data, details=details, portfolio=portfolio)
+    
+    lastupdated = portfolio['lastupdated'].strftime('%a %d %b @ %I:%M%p')
+    
+    return render_template('index.html', data=data, details=details, portfolio=portfolio, lastupdated=lastupdated)
+
+
+
+
+
 
 @app.route('/shares', methods=['GET', 'POST'])
 @login_required
 def shares():
+    
+    # Create connection to MySQL DB
     conn = mysql.connect()
     cursor = conn.cursor()
-        
+
     if request.method == 'POST':
-        if request.form.get('submit') == 'delete':
-            cursor.execute('DELETE FROM shares WHERE id=%s', [request.form.get('id')])
+    
+        submit = request.form.get('submit')
+        if request.form.get('id'):
+            id = int(request.form.get('id'))
+        else:
+            id = None
+
+        # If deleting an entry
+        if submit == 'delete':
+            cursor.execute('DELETE FROM shares WHERE id=%s', [id])
             conn.commit()
-            return redirect(url_for('index'))
+            return redirect(url_for('shares'))
         
-        elif request.form.get('submit') == 'submit':
-            
+        else:
+        
             # Assume input is true to start with
-            valid = True
-            
+            inputValidation = True
+        
             # Validate EPIC code
+            # Check to see that it is listed in companies db
             cursor.execute('SELECT * FROM companies WHERE symbol=%s', [request.form.get('epic')])
-            data = cursor.fetchall()
-            if len(data) == 0:
-                valid = False
-            
+            if cursor.rowcount == 0: inputValidation = False
+        
             # Dictionary to keep state when page is reloaded
-            # All these values are verified or don't need verification
+            # All these values are verified or don't require verification
             share = {
+                'id': id,
                 'epic': request.form.get('epic').upper(),
                 'company': request.form.get('company'),
                 'status': request.form.get('status'),
                 'comment': request.form.get('comment')
             }
-            
+        
             # Dictionary of posted values to check, will be added to share dict
             # {field: [variable, type, require user entry, default]}
             values = {
-                'buydate': [request.form.get('buydate'), 'date', False, str(datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'))],
-                'selldate': [request.form.get('selldate'), 'date', False, '0000-00-00 00:00:00'],
+                'buydate': [request.form.get('buydate'), 'date', False, datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')],
+                'selldate': [request.form.get('selldate'), 'date', False, None],
                 'quantity': [request.form.get('quantity'), 'int', True, 0],
                 'stampduty': [request.form.get('stampduty'), 'float', False, 0],
                 'buytradecost': [request.form.get('buytradecost'), 'float', False, 0],
@@ -95,88 +113,132 @@ def shares():
                 'totalsale': [request.form.get('totalsale'), 'float', False, 0],
                 'buyprice': [request.form.get('buyprice'), 'float', True, 0]
             }
-            
+        
+            # Look through values and check that required items are correct
             for key, val in values.items():
                 try:
+                    # Check floats and ints cast properly
                     if val[1] == 'float' or val[1] == 'int':
                         share[key] = float(val[0])
                         if val[1] == 'int':
                             share[key] = int(float(val[0]))
+                    
+                    # Check date
                     if val[1] == 'date':
-                        print(datetime.datetime.strptime(val[0], '%Y-%m-%d'))
+                        share[key] = str(datetime.datetime.strptime(val[0], '%Y-%m-%d %H:%M:%S'))
                 except ValueError:
+                    # If casting fails, revert to default value
+                    # If input required for this field, input validation fails here
                     share[key] = val[3]
                     if val[2]:
-                        valid = False
-            
+                        inputValidation = False
+        
             # Dictionary of values to check with defaults that depend on the last step
             defaults = {
                 'buycost': [request.form.get('buycost'), 'float', False, share['quantity'] * share['buyprice'] * 0.01],
                 'target': [request.form.get('target'), 'float', False, share['buyprice'] * 1.2],
                 'stoploss': [request.form.get('stoploss'), 'float', False, share['buyprice'] * 0.9],
             }
-            
+        
             for key, val in defaults.items():
                 try:
+                    # Check floats cast properly
                     share[key] = float(val[0])
-                    if val[1] == 'int':
-                        share[key] = int(float(val[0]))
                 except ValueError:
-                    if valid:
+                    # If the rest of the input is validated, set these to default values for entry to db
+                    # Otherwise set to 0
+                    if inputValidation:
                         share[key] = val[3]
                     else:
                         share[key] = 0
-                    if val[2]:
-                        valid = False
             
-            # If input is valid, write to database
-            if valid:
-                data = [session['user_id'], 1, share['epic'], share['company'], share['status'],
-                        share['buydate'], share['buyprice'], share['quantity'], share['stampduty'],
-                        share['buytradecost'], share['buycost'], share['target'], share['stoploss'],
+            # If input validated, try to write to database
+            if inputValidation:
+                goToIndex = 0
+                data = [session['user_id'], 1, share['epic'], share['status'], share['buydate'],
+                        share['buyprice'], share['quantity'], share['stampduty'], share['buytradecost'],
+                        share['buycost'], share['target'], share['stoploss'], share['selldate'], 
                         share['sellprice'], share['selltradecost'], share['totalsale'], share['comment']]
-                        
-                try:
-                   cursor.execute('INSERT INTO shares (userid, portfolio, epic, status, buydate, buyprice, quantity, stampduty, buytradecost, buycost, target, stoploss, sellprice, selltradecost, totalsale, comment) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', data)
-                   conn.commit()
-                except Exception as e:
-                    flash(e)
-                    valid = False
-            
-            if valid:
-               return redirect(url_for('index'))
-            else:    
-                return render_template('shares.html', share=share)
-            
-        elif request.form.get('submit') == 'update':
-            data = [request.form.get('status'), request.form.get('buydate'), request.form.get('buyprice'),
-                request.form.get('stampduty'), request.form.get('buytradecost'), request.form.get('buycost'),
-                request.form.get('target'), request.form.get('stoploss'), request.form.get('selldate'),
-                request.form.get('sellprice'), request.form.get('selltradecost'), request.form.get('totalsale'),
-                request.form.get('comment')]
-            #cursor.execute('UPDATE shares (status, buydate, buyprice, stampduty, buytradecost, buycost, target, stoploss, selldate, sellprice, selltradecost, totalsale, comment) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) WHERE id=%s',
-            #    data)
-            return str(data)
-        print(data)
         
-
+                # If entering a new entry
+                if submit == 'submit':
+                    try:
+                       goToIndex = cursor.execute('INSERT INTO shares (userid, portfolio, epic, status, buydate, buyprice, quantity, stampduty, buytradecost, buycost, target, stoploss, selldate, sellprice, selltradecost, totalsale, comment) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', data)
+                       conn.commit()
+                    except:
+                        pass
+            
+                # If updating an old entry
+                elif submit == 'update':
+                    data.append(request.form.get('id'))
+                    try:
+                        cursor.execute('UPDATE shares SET userid=%s, portfolio=%s, epic=%s, status=%s, buydate=%s, buyprice=%s, quantity=%s, stampduty=%s, buytradecost=%s, buycost=%s, target=%s, stoploss=%s, selldate=%s, sellprice=%s, selltradecost=%s, totalsale=%s, comment=%s WHERE id=%s', data)
+                        conn.commit()
+                    except Exception as e:
+                        flash(e)
+                        pass
+            
+                # If entry succeeded, go to index else go back to edit page
+                if goToIndex == 1:
+                    return redirect(url_for('index'))
+    
     elif request.method == 'GET':
-        try:
-            id = int(request.args.get('id'))
-            cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s', [session['user_id'], id])
-            share = cursor.fetchall()
-            numRows = len(share)
-        except TypeError:
-            numRows = 0
-        if numRows == 0:
-            share = [False]
-        if numRows == 0:
-            daysHeld = ''
-        elif not share[0]['selldate']:
-            daysHeld = (datetime.datetime.now() - share[0]['buydate']).days
+          
+        # Get submit and id variables
+        submit = request.args.get('submit')
+        id = request.args.get('id')
+    
+        # Verify submit/id and get share data from database if updating
+        if submit != 'update': submit = 'submit'
+        if submit == 'update':
+            try:
+                id = int(id)
+            except TypeError:
+                submit = 'submit'
+        if submit == 'update':
+            try:
+                cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s AND portfolio=1', [session['user_id'], id])
+                share = cursor.fetchone()
+            except Exception as e:
+                flash(e)
+                pass
+            if cursor.rowcount == 0:
+                submit = 'submit'
+    
+    # Create 'nav' dictionary to store navigation variables
+    # numEntries, previd, nextid, lastid
+    nav = {}
+    cursor.execute('SELECT id FROM shares WHERE userid=%s AND portfolio=1 ORDER BY id ASC', [session['user_id']])
+    data = cursor.fetchall()
+    nav['numEntries'] = cursor.rowcount
+    nav['lastid'] = data[-1]['id']
+    
+    # Set some default values
+    if submit == 'submit':
+        id = None
+        if request.method == 'GET':
+            share = {
+                'buydate': str(datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'))
+            }   
+        share['daysHeld'] = None
+            
+    elif submit == 'update':
+        nav['index'] = data.index({'id': id}) + 1
+        nav['previd'] = None if nav['index'] == 1 else data[nav['index'] - 2]['id']
+        nav['nextid'] = None if nav['index'] == nav['numEntries'] else data[nav['index']]['id']
+        
+        buyDatetime = datetime.datetime.strptime(str(share['buydate']), '%Y-%m-%d %H:%M:%S')
+        if share['selldate'] == None:
+            share['daysHeld'] = (datetime.datetime.now() - buyDatetime).days
         else:
-            daysHeld = (share[0]['selldate'] - share[0]['buydate']).days
-        return render_template('shares.html', share=share[0], daysHeld=daysHeld)
+            sellDatetime = datetime.datetime.strptime(share['selldate'], '%Y-%m-%d %H:%M:%S')
+            share['daysHeld'] = (sellDatetime - buyDatetime).days
+        
+    return render_template('shares.html', nav=nav, share=share, submit=submit)
+
+
+
+
 
 @app.route('/statement', methods=['GET'])
 @login_required
