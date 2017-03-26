@@ -41,78 +41,89 @@
 					<li><a href="{{ url_for('cash') }}">Cash Entry</a></li>
 					<li><a href="{{ url_for('statement') }}">Statement</a></li>
 					<li><a href="{{ url_for('log') }}">Log</a></li>
+					<li role="presentation" class="dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Brokers<span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="https://www.iwebsharedealing.co.uk/_mem_bin/Formslogin.asp" target="_blank">iWeb Share Dealing</a></li>
+                            <li><a href="https://online.hl.co.uk/my-accounts/login-step-one" target="_blank">Hargreaves Lansdown</a></li>
+                        </ul>
+                    </li>
 					{% endif %}
 				</ul>   
 				<ul class="nav navbar-nav navbar-right">
-				    {% if session.user_id %}
+				    {% if session['user_id'] %}
 					<li role="presentation" class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">{{ session.username }} <span class="caret"></span></a>
                         <ul class="dropdown-menu">
+                            <li><a href="{{ url_for('controlpanel') }}">Control Panel</a></li>
+                            <li role="separator" class="divider"></li>
                             <li><a href="{{ url_for('logout') }}">Logout</a></li>
                         </ul>
                     </li>
 					{% else %}
 					<li role="presentation" class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Register <span class="caret"></span></a>
-                        <ul class="dropdown-menu dropdown-form">
-                            <form class="form-horizontal" action="/register" method="post">
-                                <div class="form-group">
-                                    <label for="reg_username" class="col-md-3 control-label">Username</label>
-                                    <div class="col-md-9">
-                                        <input type="text" class="form-control" id="reg_username" name="reg_username" placeholder="Username">
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="reg_password" class="col-md-3 control-label">Password</label>
-                                    <div class="col-md-9">
-                                        <input type="password" class="form-control" id="reg_password" name="reg_password" placeholder="Password">
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="reg_confirmpassword" class="col-md-3 control-label">Confirm</label>
-                                    <div class="col-md-9">
-                                        <input type="password" class="form-control" id="reg_confirmpassword" name="reg_confirmpassword" placeholder="Confirm Password">
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <div class="col-md-offset-3 col-md-9">
-                                        <button type="submit" class="btn btn-default">Register</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </ul>
-                    </li>
-				</ul>
-				<ul class="nav navbar-nav navbar-right">
-					<li role="presentation" class="dropdown">
-                        <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Login <span class="caret"></span></a>
-                            <ul class="dropdown-menu dropdown-form">
-                            <form class="form-horizontal" action="/login" method="post">
-                                <div class="form-group">
-                                    <label for="login_username" class="col-md-3 control-label">Username</label>
-                                    <div class="col-md-9">
-                                        <input type="text" class="form-control" maxlength="30" id="login_username" name="login_username" placeholder="Username"{% if session.username %} value="{{ session.username }}"{% endif %}>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="login_password" class="col-md-3 control-label">Password</label>
-                                    <div class="col-md-9">
-                                        <input type="password" class="form-control" maxlength="30" id="login_password" name="login_password" placeholder="Password"{% if session.password %} value="{{ session.password }}"{% endif %}>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <div class="col-md-offset-3 col-md-9">
-                                        <div class="checkbox">
-                                            <label><input type="checkbox" name="login_remember"{% if session.rememberme %} checked="checked"{% endif %}> Remember me</label>
+                        <ul class="dropdown-menu">
+                            <div class="dropdown-form">
+                                <form class="form-horizontal" action="/register" method="post">
+                                    <div class="form-group">
+                                        <label for="reg_username" class="col-md-3 control-label">Username</label>
+                                        <div class="col-md-9">
+                                            <input type="text" class="form-control" id="reg_username" name="reg_username" placeholder="Username">
                                         </div>
                                     </div>
-                                </div>
-                                <div class="form-group">
-                                    <div class="col-md-offset-3 col-md-9">
-                                        <button type="submit" class="btn btn-default">Login</button>
+                                    <div class="form-group">
+                                        <label for="reg_password" class="col-md-3 control-label">Password</label>
+                                        <div class="col-md-9">
+                                            <input type="password" class="form-control" id="reg_password" name="reg_password" placeholder="Password">
+                                        </div>
                                     </div>
-                                </div>
-                            </form>
+                                    <div class="form-group">
+                                        <label for="reg_confirmpassword" class="col-md-3 control-label">Confirm</label>
+                                        <div class="col-md-9">
+                                            <input type="password" class="form-control" id="reg_confirmpassword" name="reg_confirmpassword" placeholder="Confirm Password">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="col-md-offset-3 col-md-9">
+                                            <button type="submit" class="btn btn-default">Register</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </ul>
+                    </li>
+					<li role="presentation" class="dropdown">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Login <span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <div class="dropdown-form">
+                                <form class="form-horizontal" action="/login" method="post">
+                                    <div class="form-group">
+                                        <label for="login_username" class="col-md-3 control-label">Username</label>
+                                        <div class="col-md-9">
+                                            <input type="text" class="form-control" maxlength="30" id="login_username" name="login_username" placeholder="Username"{% if session.username %} value="{{ session.username }}"{% endif %}>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="login_password" class="col-md-3 control-label">Password</label>
+                                        <div class="col-md-9">
+                                            <input type="password" class="form-control" maxlength="30" id="login_password" name="login_password" placeholder="Password"{% if session.password %} value="{{ session.password }}"{% endif %}>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="col-md-offset-3 col-md-9">
+                                            <div class="checkbox">
+                                                <label><input type="checkbox" name="login_remember"{% if session.rememberme %} checked="checked"{% endif %}> Remember me</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="col-md-offset-3 col-md-9">
+                                            <button type="submit" class="btn btn-default">Login</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
                         </ul>
                     </li>
                     {% endif %}

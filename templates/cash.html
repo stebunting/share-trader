@@ -8,8 +8,14 @@
     </div>
     <div class="col-md-6">
         <div class="panel panel-primary">
-            <div class="panel-heading">
-                <h3 class="panel-title">Cash Entry</h3>
+            <div class="panel-heading clearfix">
+                <h3 class="panel-title pull-left">Cash Entry</h3>
+                <div class="input-group" id="portfolioselect">
+                    <select class="form-control" id="portfoliochange">
+                        {% for entry in portfolio %}<option value="{{ entry['id'] }}"{% if entry['id'] == session['portfolio'] %} selected="selected"{% endif %}>{{ entry['name'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
             <div class="panel-body">
                 <form class="form-horizontal" action="{{ url_for('cash') }}" method="post" data-toggle="validator">
@@ -42,7 +48,7 @@
                         <label for="cash_date" class="col-sm-2 control-label">Date</label>
                         <div class="col-sm-10">
                             <div class="input-group">
-                                <input type="text" class="form-control datepicker" name="cash_date" placeholder="Date" required>
+                                <input type="text" class="form-control datepicker" id="cashdatepicker" name="cash_date" placeholder="Date" required>
                             </div>
                             <div class="help-block with-errors"></div>
                         </div>

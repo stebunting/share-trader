@@ -6,15 +6,19 @@
     <div class="row">
         <div class="col-md-7">
             <h1>Open Positions</h1>
-            <a href="https://www.iwebsharedealing.co.uk/_mem_bin/Formslogin.asp" target="_blank" class="btn btn-primary" role="button">iWeb Share Dealing</a>
-            <a href="https://online.hl.co.uk/my-accounts/login-step-one" target="_blank" class="btn btn-primary" role="button">Hargreaves Lansdown</a>
-            <input type="button" class="btn btn-primary" id="refreshPrices" value="Refresh Prices" data-loading-text="Refreshing..." onclick="refreshPrices()" autocomplete="off">
-            <input type="button" class="btn btn-primary" id="logState" value="Log State" data-loading-text="Logged!" onclick="logState()">
+            <input type="button" class="btn btn-primary" id="refreshPrices" value="Refresh Prices" data-loading-text="Refreshing..." data-fail-text="REFRESH FAILED!" onclick="refreshPrices()" autocomplete="off">
+            <input type="button" class="btn btn-primary" id="logState" value="Log State" data-logged-text="Logged!" data-fail-text="LOGGING FAILED!" onclick="logState()">
         </div>
         <div class="col-md-5">
             <div class="panel panel-primary">
-                <div class="panel-heading">
-                    <h3 class="panel-title">Portfolio Details</h3>
+                <div class="panel-heading clearfix">
+                    <h3 class="panel-title pull-left">Portfolio Details</h3>
+                    <div class="input-group" id="portfolioselect">
+                        <select class="form-control" id="portfoliochange">
+                            {% for entry in portfolio %}<option value="{{ entry['id'] }}"{% if entry['id'] == session['portfolio'] %} selected="selected"{% endif %}>{{ entry['name'] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
                 <div class="panel-body">
                     <div class="row">
@@ -27,27 +31,27 @@
                     </div>
                     <div class="row">
                         <div class="col-md-5">Invested Capital</div>
-                        <div class="col-md-7" id="capital">{{ portfolio['portfoliocapital']|gbp }}</div>
+                        <div class="col-md-7" id="capital">{{ portfolio[portfolio_index]['capital']|gbp }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Cash</div>
-                        <div class="col-md-7" id="cash">{{ portfolio['portfoliocash']|gbp }}</div>
+                        <div class="col-md-7" id="cash">{{ portfolio[portfolio_index]['cash']|gbp }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Profit/Loss</div>
-                        <div class="col-md-7" id="profitloss">{{ (details['market_exposure'] - details['sale_costs'] + portfolio['portfoliocash'] - portfolio['portfoliocapital'])|gbp }}</div>
+                        <div class="col-md-7" id="profitloss">{{ (details['market_exposure'] - details['sale_costs'] + portfolio[portfolio_index]['cash'] - portfolio[portfolio_index]['capital'])|gbp }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5"></div>
-                        <div class="col-md-7" id="percentage">{% if portfolio['portfoliocapital'] != 0 %}{{ ((100 * ((details['market_exposure'] - details['sale_costs'] + portfolio['portfoliocash']) / portfolio['portfoliocapital'])) - 100)|percentage }}{% else %}{{ 0|percentage }}{% endif %}</div>
+                        <div class="col-md-7" id="percentage">{% if portfolio[portfolio_index]['capital'] != 0 %}{{ ((100 * ((details['market_exposure'] - details['sale_costs'] + portfolio[portfolio_index]['cash']) / portfolio[portfolio_index]['capital'])) - 100)|percentage }}{% else %}{{ 0|percentage }}{% endif %}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Last Log</div>
-                        <div class="col-md-7" id="lastlog">{% if portfolio['lastlog'] %}{{ portfolio['lastlog'] }}{% endif %}</div>
+                        <div class="col-md-7" id="lastlog">{% if portfolio[portfolio_index]['lastlog'] %}{{ portfolio[portfolio_index]['lastlog'] }}{% endif %}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Last Updated</div>
-                        <div class="col-md-7" id="lastupdated">{{ portfolio['lastupdated'] }}</div>
+                        <div class="col-md-7" id="lastupdated">{{ portfolio[portfolio_index]['lastupdated'] }}</div>
                     </div>
                 </div>
             </div>
@@ -76,7 +80,7 @@
                 <td id="{{ row['id'] }}-{{ row['epic']}}-quantity" class="text-right">{{ row['quantity'] }}</td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-target" class="text-right{% if row['target'] <= row['sellprice'] %} success">{% else %}">{% endif %}<input type="text" class="indexform targetinput form-control" name="{{ row['id'] }}-{{ row['epic']}}-targetedit" id="{{ row['id'] }}-{{ row['epic']}}-target-edit" value="{{ row['target']|shareprice }}"></td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-stoploss" class="text-right{% if row['stoploss'] >= row['sellprice'] %} danger">{% else %}">{% endif %}<input type="text" class="indexform stoplossinput form-control" name="{{ row['id'] }}-{{ row['epic']}}-stoplossedit" id="{{ row['id'] }}-{{ row['epic']}}-stoploss-edit" value="{{ row['stoploss']|shareprice }}"></td>
-                <td id="{{ row['id'] }}-{{ row['epic']}}-bid" class="text-right {{ row['epic'] }}">{{ row['sellprice']|shareprice }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-bid" class="text-right {{ row['epic'] }}"><strong>{{ row['sellprice']|shareprice }}</strong></td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-value" class="text-right">{{ (row['sellprice'] * row['quantity'] * 0.01)|gbp }}</td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-profitloss" class="text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}{{ row['profitloss']|gbp }}</td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-percentage" class="text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}{{ row['percentage']|percentage }}</td>

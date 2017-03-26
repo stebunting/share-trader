@@ -91,24 +91,38 @@ function updateBid(company) {
 // Get updated share price data
 function refreshPrices() {
     var $btn = $('#refreshPrices').button('loading');
+    if ($btn.hasClass('btn-danger')) {
+        $btn.addClass('btn-primary').removeClass('btn-danger');
+    };
+    $btn.addClass('btn-primary').removeClass('btn-danger');
+    
     $.getJSON('/updatesharedata', function(data) {
         returnData = []
         $.each(data, function(key, val) {
             returnData.push(updateBid(val));
         });
     }).done(function() {
+        var exp = $('#exposure').text().replace('£', '').replace(',', '');
+        
         // Send updated data back to application to store to database
         var xhr = new XMLHttpRequest();
         xhr.open('post', '/updatedb', true);
         xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-        xhr.send(JSON.stringify(returnData));
+        xhr.send(JSON.stringify([exp, returnData]));
     
-        // When done, set refresh button active
+        // When done, set refresh button active and reset log button
         $btn.button('reset');
+        $('#logState').button('reset').addClass('btn-primary').removeClass('btn-success');
     
         // Update last updated time
         var lastUpdate = new Date();
         $('#lastupdated').text(lastUpdate.format('ddd dd mmm @ hh:MM:sstt'));
+    }).fail(function() {
+        $btn.button('fail');
+        
+        if (!$btn.hasClass('btn-danger')) {
+            $btn.addClass('btn-danger').removeClass('btn-primary');
+        };
     });
     
 }
@@ -117,16 +131,36 @@ function refreshPrices() {
 // Log Current State
 function logState() {
     var exposure = $('#exposure').text().replace('£', '').replace(',', '');
+    var $btn = $('#logState');
     
     // Send updated data back to application to store to database
-    var xhr = new XMLHttpRequest();
-    xhr.open('post', '/updatelog', true);
-    xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-    xhr.send(JSON.stringify(exposure));
-    
-    var lastlog = new Date();
-    $('#lastlog').text(lastlog.format('ddd dd mmm @ hh:MM:sstt'));
-    $('#logState').button('loading');
+    $.ajax({
+        url: '/updatelog',
+        type: 'POST',
+        data: JSON.stringify(exposure),
+        contentType: 'application/json; charset=utf-8',
+        dataType: 'json',
+        async: false,
+        success: function(msg) {
+            if ($btn.hasClass('btn-primary')) {
+                $btn.removeClass('btn-primary');
+            } else if ($btn.hasClass('btn-danger')) {
+                $btn.removeClass('btn-danger');
+            }
+            $btn.button('logged').addClass('btn-success')
+            
+            var lastlog = new Date();
+            $('#lastlog').text(lastlog.format('ddd dd mmm @ hh:MM:sstt'));
+        },
+        error: function(msg) {
+            if ($btn.hasClass('btn-primary')) {
+                $btn.removeClass('btn-primary');
+            } else if ($btn.hasClass('btn-success')) {
+                $btn.removeClass('btn-success');
+            }
+            $btn.button('fail').addClass('btn-danger')
+        }
+    });
 }
     
 $(function() {
@@ -135,86 +169,33 @@ $(function() {
     $('.indexform').keydown(function(e){
         if(e.keyCode == 13){
             var ident = $(this).attr('id')
-            var xhr = new XMLHttpRequest();
-            xhr.open('post', '/updateindex', true);
-            xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-            xhr.send(JSON.stringify([ident, $(this).val()]));
-            
+            $.ajax({
+                url: '/updateindex',
+                type: 'POST',
+                data: JSON.stringify([ident, $(this).val()]),
+                contentType: 'application/json; charset=utf-8',
+                dataType: 'json',
+                async: false,
+                success: function(msg) {}
+            });
             var data = ident.split('-');
             updateCellColours('#' + data[0] + '-' + data[1] + '-');
             $(this).blur();
         }
     })
     
-    // Share Page
-    // Implement 2 datepickers on buydate and selldate
-    var $datepickers = [$('#buydate'), $('#selldate')];
-    $datepickers.forEach(function($entry) {
-        //$('#anim').on('change', function() {
-        //    $entry.datetimepicker('option', 'showAnim', 'slideDown');
-        //});
-        $entry.datetimepicker({
-            setDate: $entry.attr('value'),
-            dateFormat: 'yy-mm-dd',
-            timeFormat: 'HH:mm:ss',
-            beforeShow: function() {
-                setTimeout(function(){
-                    $('.ui-datepicker').css('z-index', 99999999999999);
-                }, 0);
-            }
+    // Index PAge
+    $('#portfoliochange').on('change', function() {
+        $.ajax({
+            url: '/portfoliochange',
+            type: 'POST',
+            data: JSON.stringify($('#portfoliochange').val()),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            async: false,
+            success: function(msg) {}
         });
-    });
-    
-    $('#stampdutycalculate').click(function() {
-        var stampduty = 0;
-        if (parseFloat($('#buyprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
-            stampduty = parseInt($('#buyprice').val()) * parseInt($('#quantity').val()) * 0.00005;
-        }
-        $('#stampduty').focus().val(stampduty.toFixed(2));
-    });
-    
-    $('#buycostcalculate').click(function() {
-        var buycost = 0;
-        if (parseFloat($('#buyprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
-            buycost += parseFloat($('#buyprice').val()) * 0.01 * parseInt($('#quantity').val());
-        }
-        if (parseFloat($('#stampduty').val()) > 0) {
-            buycost += parseFloat($('#stampduty').val());
-        }
-        if (parseFloat($('#buytradecost').val()) > 0) {
-            buycost += parseFloat($('#buytradecost').val());
-        }
-        if (buycost < 0) {
-            buycost = 0;
-        }
-        $('#buycost').focus().val(buycost.toFixed(2));
-    });
-    
-    $('#sellpricecalculate').click(function() {
-        var sellprice = 0;
-        if (parseFloat($('#sellprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
-            sellprice += parseFloat($('#sellprice').val()) * 0.01 * parseInt($('#quantity').val());
-        }
-        if (parseFloat($('#selltradecost').val()) > 0) {
-            sellprice -= parseFloat($('#selltradecost').val());
-        }
-        $('#totalsale').focus().val(sellprice.toFixed(2));
-    });
-    
-    $('#targetcalculate').click(function() {
-        var targetprice = 0;
-        if (parseFloat($('#buyprice').val()) > 0) {
-            targetprice = parseFloat($('#buyprice').val()) * 1.2;
-        }
-        $('#target').focus().val(targetprice.toFixed(2));
-    });
-    
-    $('#stoplosscalculate').click(function() {
-        var stoploss = 0;
-        if (parseFloat($('#buyprice').val()) > 0) {
-            targetprice = parseFloat($('#buyprice').val()) * 0.9;
-        }
-        $('#stoploss').focus().val(targetprice.toFixed(2));
+        location.reload();
     });
     
     // Shares Page
@@ -239,5 +220,87 @@ $(function() {
                 }
             }
         });
+    });
+    
+    // Share Page
+    // Implement 2 datepickers on buydate and selldate
+    var $datepickers = [$('#buydate'), $('#selldate')];
+    $datepickers.forEach(function($entry) {
+        $entry.datetimepicker({
+            setDate: $entry.attr('value'),
+            dateFormat: 'yy-mm-dd',
+            timeFormat: 'HH:mm:ss',
+            beforeShow: function() {
+                setTimeout(function() {
+                    $('.ui-datepicker').css('z-index', 99999999999999);
+                }, 0);
+            }
+        });
+    });
+    
+    // Share Page
+    // Calculate target at 20% when button pressed
+    $('#targetcalculate').click(function() {
+        var targetprice = 0;
+        if (parseFloat($('#buyprice').val()) > 0) {
+            targetprice = parseFloat($('#buyprice').val()) * 1.2;
+        }
+        $('#target').focus().val(targetprice.toFixed(2));
+    });
+    
+    // Share Page
+    // Calculate stop loss at -10% when button pressed
+    $('#stoplosscalculate').click(function() {
+        var stoploss = 0;
+        if (parseFloat($('#buyprice').val()) > 0) {
+            targetprice = parseFloat($('#buyprice').val()) * 0.9;
+        }
+        $('#stoploss').focus().val(targetprice.toFixed(2));
+    });
+    
+    // Share Page
+    // Calculate Stamp Duty when button pressed
+    $('#stampdutycalculate').click(function() {
+        var stampduty = 0;
+        if (parseFloat($('#buyprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
+            stampduty = parseInt($('#buyprice').val()) * parseInt($('#quantity').val()) * 0.00005;
+        }
+        $('#stampduty').focus().val(stampduty.toFixed(2));
+    });
+    
+    // Share Page
+    // Calculate total buy cost when button pressed
+    $('#buycostcalculate').click(function() {
+        var buycost = 0;
+        if (parseFloat($('#buyprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
+            buycost += parseFloat($('#buyprice').val()) * 0.01 * parseInt($('#quantity').val());
+        }
+        if (parseFloat($('#stampduty').val()) > 0) {
+            buycost += parseFloat($('#stampduty').val());
+        }
+        if (parseFloat($('#buytradecost').val()) > 0) {
+            buycost += parseFloat($('#buytradecost').val());
+        }
+        if (buycost < 0) {
+            buycost = 0;
+        }
+        $('#buycost').focus().val(buycost.toFixed(2));
+    });
+    
+    // Share Page
+    // Calculate total sell cost when button pressed
+    $('#sellpricecalculate').click(function() {
+        var sellprice = 0;
+        if (parseFloat($('#sellprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
+            sellprice += parseFloat($('#sellprice').val()) * 0.01 * parseInt($('#quantity').val());
+        }
+        if (parseFloat($('#selltradecost').val()) > 0) {
+            sellprice -= parseFloat($('#selltradecost').val());
+        }
+        $('#totalsale').focus().val(sellprice.toFixed(2));
+    });
+    
+    $('#cashdatepicker').datepicker({
+        dateFormat: 'yy-mm-dd'
     });
 });
