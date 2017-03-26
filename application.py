@@ -49,7 +49,7 @@ def index():
     
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
+    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     details = {
         'market_exposure': 0,
@@ -90,9 +90,9 @@ def shares():
 
         # If deleting an entry
         if submit == 'delete':
-            cursor.execute('DELETE FROM shares WHERE id=%s', [id])
+            cursor.execute('DELETE FROM shares WHERE id=%s AND userid=%s', [id, session['user_id']])
             conn.commit()
-            cursor.execute('SELECT id FROM shares ORDER BY id ASC')
+            cursor.execute('SELECT id FROM shares WHERE userid=%s ORDER BY id ASC', [session['user_id']])
             data = cursor.fetchall()
             j = 0
             if data[-1]['id'] < id:
@@ -104,7 +104,7 @@ def shares():
                         j = data[i]['id']
             id = j
             submit = 'update'
-            cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s AND portfolio=%s', [session['user_id'], id, session['portfolio']])
+            cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s AND portfolioid=%s', [session['user_id'], id, session['portfolio']])
             share = cursor.fetchone()
         
         else:
@@ -182,7 +182,7 @@ def shares():
             # If input validated, try to write to database
             if inputValidation:
                 goToIndex = 0
-                data = [session['user_id'], 1, share['epic'], share['status'], share['buydate'],
+                data = [session['user_id'], session['portfolio'], share['epic'], share['status'], share['buydate'],
                         share['buyprice'], share['quantity'], share['stampduty'], share['buytradecost'],
                         share['buycost'], share['target'], share['stoploss'], share['selldate'], 
                         share['sellprice'], share['selltradecost'], share['totalsale'], share['comment']]
@@ -190,7 +190,7 @@ def shares():
                 # If entering a new entry
                 if submit == 'submit':
                     try:
-                       goToIndex = cursor.execute('INSERT INTO shares (userid, portfolio, epic, status, buydate, buyprice, quantity, stampduty, buytradecost, buycost, target, stoploss, selldate, sellprice, selltradecost, totalsale, comment) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', data)
+                       goToIndex = cursor.execute('INSERT INTO shares (userid, portfolioid, epic, status, buydate, buyprice, quantity, stampduty, buytradecost, buycost, target, stoploss, selldate, sellprice, selltradecost, totalsale, comment) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', data)
                        conn.commit()
                     except:
                         pass
@@ -199,7 +199,7 @@ def shares():
                 elif submit == 'update':
                     data.append(request.form.get('id'))
                     try:
-                        cursor.execute('UPDATE shares SET userid=%s, portfolio=%s, epic=%s, status=%s, buydate=%s, buyprice=%s, quantity=%s, stampduty=%s, buytradecost=%s, buycost=%s, target=%s, stoploss=%s, selldate=%s, sellprice=%s, selltradecost=%s, totalsale=%s, comment=%s WHERE id=%s', data)
+                        cursor.execute('UPDATE shares SET userid=%s, portfolioid=%s, epic=%s, status=%s, buydate=%s, buyprice=%s, quantity=%s, stampduty=%s, buytradecost=%s, buycost=%s, target=%s, stoploss=%s, selldate=%s, sellprice=%s, selltradecost=%s, totalsale=%s, comment=%s WHERE id=%s', data)
                         conn.commit()
                     except Exception as e:
                         flash(e)
@@ -223,9 +223,9 @@ def shares():
             except TypeError:
                 id = None
             if id:
-                cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s AND portfolio=%s', [session['user_id'], id, session['portfolio']])
+                cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s AND portfolioid=%s', [session['user_id'], id, session['portfolio']])
             else:
-                cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=%s ORDER BY id DESC LIMIT 1', [session['user_id'], session['portfolio']])
+                cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s ORDER BY id DESC LIMIT 1', [session['user_id'], session['portfolio']])
             share = cursor.fetchone()
             id = share['id']
             print("ID: ", id)
@@ -235,7 +235,7 @@ def shares():
     # Create 'nav' dictionary to store navigation variables
     # numEntries, previd, nextid, lastid
     nav = {}
-    cursor.execute('SELECT id FROM shares WHERE userid=%s AND portfolio=%s ORDER BY id ASC', [session['user_id'], session['portfolio']])
+    cursor.execute('SELECT id FROM shares WHERE userid=%s AND portfolioid=%s ORDER BY id ASC', [session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     nav['numEntries'] = cursor.rowcount
     nav['lastid'] = data[-1]['id']
@@ -276,7 +276,7 @@ def statement():
     statement = []
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=%s', [session['user_id'], session['portfolio']])
+    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     for row in data:
         statement.append({
@@ -288,7 +288,7 @@ def statement():
             'notes': '',
             'type': 'buy'
         })
-    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolio=%s AND status=0', [session['user_id'], session['portfolio']])
+    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s AND status=0', [session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     for row in data:
         statement.append({
@@ -358,9 +358,9 @@ def cash():
             conn.commit()
 
         # Update user's cash
-        cursor.execute('SELECT SUM(buycost) AS debit FROM shares WHERE userid=%s AND portfolio=%s', [session['user_id'], session['portfolio']])
+        cursor.execute('SELECT SUM(buycost) AS debit FROM shares WHERE userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
         debitdata = cursor.fetchone()
-        cursor.execute('SELECT SUM(totalsale) AS credit FROM shares WHERE userid=%s AND portfolio=%s and status=0', [session['user_id'], session['portfolio']])
+        cursor.execute('SELECT SUM(totalsale) AS credit FROM shares WHERE userid=%s AND portfolioid=%s and status=0', [session['user_id'], session['portfolio']])
         creditdata = cursor.fetchone()
         cursor.execute('SELECT SUM(amount) AS cash FROM cash WHERE userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
         cashdata = cursor.fetchone()
@@ -407,9 +407,9 @@ def log():
         capital = float(cursor.fetchone()['capital'])
         cursor.execute('SELECT SUM(amount) AS csh FROM cash WHERE date<=%s AND userid=%s AND portfolioid=%s', [log[i]['date'], session['user_id'], session['portfolio']])
         cash = float(cursor.fetchone()['csh'])
-        cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolio=%s', [log[i]['date'], session['user_id'], session['portfolio']])
+        cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolioid=%s', [log[i]['date'], session['user_id'], session['portfolio']])
         buys = float(cursor.fetchone()['buys'])
-        cursor.execute('SELECT SUM(totalsale) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolio=%s', [log[i]['date'], session['user_id'], session['portfolio']])
+        cursor.execute('SELECT SUM(totalsale) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolioid=%s', [log[i]['date'], session['user_id'], session['portfolio']])
         sells = float(cursor.fetchone()['sells'])
         cursor.execute('UPDATE log SET capital=%s, cash=%s WHERE id=%s', [capital, cash - buys + sells, log[i]['id']])
         conn.commit()"""
@@ -470,10 +470,10 @@ def controlpanel():
 
 
 @app.route('/updatesharedata')
-def symbols():
+def updatesharedata():
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM shares WHERE userid=%s AND portfolio=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
+    cursor.execute('SELECT * FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     
     quoteLogin()
@@ -483,50 +483,50 @@ def symbols():
             return ''
     return jsonify(data)
 
-# Route to accept data back from Javascript to update log
-@app.route('/updatelog', methods=['GET', 'POST'])
-def updatelog():
-    exposure = request.get_json()
-    conn = mysql.connect()
-    cursor = conn.cursor()
+    
+# Route to accept share data back from Javascript to update share and log databases
+@app.route('/updatedb', methods=['POST'])
+def updatedb():
+    
+    # Get required data
+    content = request.get_json()
+    exposure, sharedata = float(content[0]), content[1]
     date = datetime.datetime.now()
     
+    # Update all share rows
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    for row in sharedata:
+        cursor.execute('UPDATE shares SET sellprice=%s, totalsale=%s, profitloss=%s, percentage=%s WHERE userid=%s AND id=%s',
+            [row['bid'], row['value'], row['profitloss'], row['percentage'], session['user_id'], row['id']])
+        cursor.execute('UPDATE portfolios SET lastupdated=NOW() WHERE userid=%s AND id=%s', [session['user_id'], session['portfolio']])
+        conn.commit()
+    
+    # Get current FTSE 100 price
     quoteLogin()
     ftse100 = quote('UKX', 'price')
-    cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-    capital = float(cursor.fetchone()['capital'])
-    cursor.execute('SELECT SUM(amount) AS csh FROM cash WHERE date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-    cash = float(cursor.fetchone()['csh'])
-    cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolio=%s', [date, session['user_id'], session['portfolio']])
-    buys = float(cursor.fetchone()['buys'])
-    cursor.execute('SELECT SUM(totalsale) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolio=%s', [date, session['user_id'], session['portfolio']])
-    sells = float(cursor.fetchone()['sells'])
+    
+    # Update log
     cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 1', [session['user_id'], session['portfolio']])
     lastlog = cursor.fetchone()
-    if lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d"):
-        cursor.execute('UPDATE log SET exposure=%s, capital=%s, cash=%s, ftse100=%s WHERE id=%s', [exposure, capital, cash - buys + sells, ftse100, lastlog['id']])
-        cursor.execute('UPDATE portfolios SET lastlog=NOW() WHERE id=%s', [session['portfolio']])
-        conn.commit()
-    elif lastlog['exposure'] != exposure or lastlog['ftse100'] != ftse100:
-        cursor.execute('INSERT INTO log (userid, portfolioid, exposure, capital, cash, ftse100) VALUES (%s, %s, %s, %s, %s, %s)', [session['user_id'], session['portfolio'], exposure, capital, cash - buys + sells, ftse100])
-        cursor.execute('UPDATE portfolios SET lastlog=NOW() WHERE id=%s', [session['portfolio']])
+    if lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d") or lastlog['exposure'] != exposure or lastlog['ftse100'] != ftse100:
+        cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
+        capital = float(cursor.fetchone()['capital'])
+        cursor.execute('SELECT SUM(amount) AS csh FROM cash WHERE date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
+        cash = float(cursor.fetchone()['csh'])
+        cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
+        buys = float(cursor.fetchone()['buys'])
+        cursor.execute('SELECT SUM(totalsale) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
+        sells = float(cursor.fetchone()['sells'])
+        if lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d"):
+            cursor.execute('UPDATE log SET exposure=%s, capital=%s, cash=%s, ftse100=%s WHERE id=%s', [exposure, capital, cash - buys + sells, ftse100, lastlog['id']])
+        else:
+            print(lastlog['exposure'] == exposure, lastlog['ftse100'] == ftse100)
+            cursor.execute('INSERT INTO log (userid, portfolioid, exposure, capital, cash, ftse100) VALUES (%s, %s, %s, %s, %s, %s)', [session['user_id'], session['portfolio'], exposure, capital, cash - buys + sells, ftse100])
+        cursor.execute('UPDATE portfolios SET lastlog=NOW() WHERE userid=%s AND id=%s', [session['user_id'], session['portfolio']])
         conn.commit()
     
     return 'true'
-    
-# Route to accept share data back from Javascript to update database
-@app.route('/updatedb', methods=['POST'])
-def updatedb():
-    content = request.get_json()
-    exposure, content = content[0], content[1]
-    conn = mysql.connect()
-    cursor = conn.cursor()
-    for row in content:
-        cursor.execute('UPDATE shares SET sellprice=%s, totalsale=%s, profitloss=%s, percentage=%s WHERE userid=%s AND id=%s',
-            [row['bid'], row['value'], row['profitloss'], row['percentage'], session['user_id'], row['id']])
-        cursor.execute('UPDATE portfolios SET lastupdated=NOW(), exposure=%s WHERE userid=%s AND id=%s', [exposure, session['user_id'], session['portfolio']])
-        conn.commit()
-    return '1'
 
 # Route to accept target/stop loss data back from index page to update database
 @app.route('/updateindex', methods=['POST'])
@@ -538,9 +538,9 @@ def updateindex():
         conn = mysql.connect()
         cursor = conn.cursor()
         if data[2] == 'target':
-            cursor.execute('UPDATE shares SET target=%s WHERE id=%s', [value, data[0]])
+            cursor.execute('UPDATE shares SET target=%s WHERE userid=%s AND portfolioid=%s AND id=%s', [value, session['user_id'], session['portfolio'], data[0]])
         elif data[2] == 'stoploss':
-            cursor.execute('UPDATE shares SET stoploss=%s WHERE id=%s', [value, data[0]])
+            cursor.execute('UPDATE shares SET stoploss=%s WHERE userid=%s AND portfolioid=%s AND id=%s', [value, session['user_id'], session['portfolio'], data[0]])
         conn.commit()
     except:
         pass

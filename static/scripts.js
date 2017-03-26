@@ -16,13 +16,13 @@ function updateCellColours(ident) {
     var percentage = parseFloat($(ident + 'percentage').text());
     var bid = $(ident + 'bid').text();
     
-    if (bid <= stoploss) {
+    if (bid <= parseFloat(stoploss)) {
         $(ident + 'stoploss').addClass('danger');
     } else {
         $(ident + 'stoploss').removeClass('danger');
     };
     
-    if (bid >= target) {
+    if (bid >= parseFloat(target)) {
         $(ident + 'target').addClass('success');
     } else {
         $(ident + 'target').removeClass('success');
@@ -104,12 +104,14 @@ function refreshPrices() {
     }).done(function() {
         var exp = $('#exposure').text().replace('£', '').replace(',', '');
         
-        // Send updated data back to application to store to database
-        var xhr = new XMLHttpRequest();
-        xhr.open('post', '/updatedb', true);
-        xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-        xhr.send(JSON.stringify([exp, returnData]));
-    
+        $.ajax({
+            url: '/updatedb',
+            type: 'POST',
+            data: JSON.stringify([exp, returnData]),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            async: false
+        });
         // When done, set refresh button active and reset log button
         $btn.button('reset');
         $('#logState').button('reset').addClass('btn-primary').removeClass('btn-success');
@@ -123,44 +125,7 @@ function refreshPrices() {
         if (!$btn.hasClass('btn-danger')) {
             $btn.addClass('btn-danger').removeClass('btn-primary');
         };
-    });
-    
-}
-
-    
-// Log Current State
-function logState() {
-    var exposure = $('#exposure').text().replace('£', '').replace(',', '');
-    var $btn = $('#logState');
-    
-    // Send updated data back to application to store to database
-    $.ajax({
-        url: '/updatelog',
-        type: 'POST',
-        data: JSON.stringify(exposure),
-        contentType: 'application/json; charset=utf-8',
-        dataType: 'json',
-        async: false,
-        success: function(msg) {
-            if ($btn.hasClass('btn-primary')) {
-                $btn.removeClass('btn-primary');
-            } else if ($btn.hasClass('btn-danger')) {
-                $btn.removeClass('btn-danger');
-            }
-            $btn.button('logged').addClass('btn-success')
-            
-            var lastlog = new Date();
-            $('#lastlog').text(lastlog.format('ddd dd mmm @ hh:MM:sstt'));
-        },
-        error: function(msg) {
-            if ($btn.hasClass('btn-primary')) {
-                $btn.removeClass('btn-primary');
-            } else if ($btn.hasClass('btn-success')) {
-                $btn.removeClass('btn-success');
-            }
-            $btn.button('fail').addClass('btn-danger')
-        }
-    });
+    });   
 }
     
 $(function() {
@@ -184,7 +149,7 @@ $(function() {
         }
     })
     
-    // Index PAge
+    // Index Page
     $('#portfoliochange').on('change', function() {
         $.ajax({
             url: '/portfoliochange',
