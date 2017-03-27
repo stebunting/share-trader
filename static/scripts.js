@@ -7,7 +7,11 @@ function gbp(value) {
 }
 
 function percent(value) {
-    return parseFloat(value.toFixed(1)) + '%'
+    var symbol = '';
+    if (value >= 0) {
+        symbol = '+';
+    }
+    return symbol + parseFloat(value).toFixed(1) + '%'
 }
 
 function updateCellColours(ident) {
@@ -146,12 +150,13 @@ $(function() {
             contentType: 'application/json; charset=utf-8',
             dataType: 'json',
             async: false,
-            success: function(msg) {}
+            success: function() {
+                location.reload();
+            }
         });
-        location.reload();
     });
     
-    // Shares Page
+    // Share Page
     // Updates company and ADVFN link when EPIC changed
     $('#epic').keyup(function() {
         $.getJSON('/company?epic=' + $('#epic').val(), function(data) {
@@ -176,7 +181,7 @@ $(function() {
     });
     
     // Share Page
-    // Implement 2 datepickers on buydate and selldate
+    // Implement 2 datetimepickers on buydate and selldate
     var $datepickers = [$('#buydate'), $('#selldate')];
     $datepickers.forEach(function($entry) {
         $entry.datetimepicker({
@@ -253,6 +258,8 @@ $(function() {
         $('#value').focus().val(sellprice.toFixed(2));
     });
     
+    // Cash Page
+    // Implemente datepicker
     $('#cashdatepicker').datepicker({
         dateFormat: 'yy-mm-dd'
     });

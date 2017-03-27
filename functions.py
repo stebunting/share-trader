@@ -18,7 +18,7 @@ def shareprice(value):
 	return "{:.2f}".format(value)
 
 def percentage(value):
-    return "{:.1f}%".format(value)
+    return "{:+.1f}%".format(value)
 
 def dateFormat(value):
     return datetime.datetime.strftime(value, "%d %b %Y")

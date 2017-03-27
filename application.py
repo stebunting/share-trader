@@ -54,6 +54,7 @@ def getPortfolio():
 def index():
     portfolio = getPortfolio()
     portfolio_index, portfolio = portfolio[0], portfolio[1]
+    portfolio[portfolio_index]['lastupdated'] = portfolio[portfolio_index]['lastupdated'].strftime('%a %d %b @ %I:%M:%S%p')
     
     conn = mysql.connect()
     cursor = conn.cursor()
@@ -71,10 +72,6 @@ def index():
     daily = cursor.fetchall()[1]
     details['dailyprofit'] = details['market_exposure'] - daily['exposure']
     details['dailypercent'] = 100 * (details['dailyprofit'] / details['market_exposure'])
-    
-    portfolio[portfolio_index]['lastupdated'] = portfolio[portfolio_index]['lastupdated'].strftime('%a %d %b @ %I:%M:%S%p')
-    if portfolio[portfolio_index]['lastlog']:
-        portfolio[portfolio_index]['lastlog'] = portfolio[portfolio_index]['lastlog'].strftime('%a %d %b @ %I:%M:%S%p')
     
     return render_template('index.html', data=data, details=details, portfolio=portfolio, portfolio_index=portfolio_index)
 
@@ -493,6 +490,7 @@ def updatesharedata():
     cursor.execute('SELECT id, epic, buyprice, quantity, stampduty, buytradecost, selltradecost, value, profitloss, percentage FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     sharedata = cursor.fetchall()
     
+    # Calculate new row values based on new quote data
     quoteLogin()
     exposure = 0
     salevaluedelta = 0
@@ -507,31 +505,31 @@ def updatesharedata():
         sharedata[i]['percentage'] = ((10000 * (sharedata[i]['value'] - costs) / (sharedata[i]['buyprice'] * sharedata[i]['quantity'])) - 100)
         if sharedata[i]['sellprice'] == False:
             return ''
-        cursor.execute('UPDATE shares SET sellprice=%s, value=%s, profitloss=%s, percentage=%s WHERE userid=%s AND id=%s',
-            [sharedata[i]['sellprice'], sharedata[i]['value'], sharedata[i]['profitloss'], sharedata[i]['percentage'], session['user_id'], sharedata[i]['id']])
+        
+        # Add new values to db
+        cursor.execute('UPDATE shares SET sellprice=%s, value=%s, profitloss=%s, percentage=%s WHERE userid=%s AND id=%s AND portfolioid=%s',
+            [sharedata[i]['sellprice'], sharedata[i]['value'], sharedata[i]['profitloss'], sharedata[i]['percentage'], session['user_id'], sharedata[i]['id'], session['portfolio']])
         conn.commit()
     
+    # Update exposure and lastupdated in portfolios db
     date = datetime.datetime.now()
     cursor.execute('UPDATE portfolios SET exposure=%s, lastupdated=NOW() WHERE userid=%s AND id=%s', [exposure, session['user_id'], session['portfolio']])
     conn.commit()
     
-    # Get current FTSE 100 price
-    quoteLogin()
-    ftse100 = quote('UKX', 'price')
-    
     # Update log
     cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 1', [session['user_id'], session['portfolio']])
     lastlog = cursor.fetchone()
+    ftse100 = quote('UKX', 'price')
+    
     if lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d") or lastlog['exposure'] != exposure or lastlog['ftse100'] != ftse100:
         cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
         capital = float(cursor.fetchone()['capital'])
         cursor.execute('SELECT SUM(amount) AS csh FROM cash WHERE date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
         cash = float(cursor.fetchone()['csh'])
         cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-        buys = float(cursor.fetchone()['buys'])
+        cash -= float(cursor.fetchone()['buys'])
         cursor.execute('SELECT SUM(value) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-        sells = float(cursor.fetchone()['sells'])
-        cash = cash - buys + sells
+        cash += float(cursor.fetchone()['sells'])
         if lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d"):
             cursor.execute('UPDATE log SET exposure=%s, capital=%s, cash=%s, ftse100=%s WHERE id=%s', [exposure, capital, cash, ftse100, lastlog['id']])
         else:
