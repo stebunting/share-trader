@@ -172,7 +172,7 @@ def shares():
             defaults = {
                 'buycost': [request.form.get('buycost'), 'float', False, share['quantity'] * share['buyprice'] * 0.01],
                 'target': [request.form.get('target'), 'float', False, share['buyprice'] * 1.2],
-                'stoploss': [request.form.get('stoploss'), 'float', False, share['buyprice'] * 0.9],
+                'stoploss': [request.form.get('stoploss'), 'float', False, share['buyprice'] * 0.9]
             }
         
             for key, val in defaults.items():
@@ -187,18 +187,23 @@ def shares():
                     else:
                         share[key] = 0
             
+            share['profitloss'] = (share['quantity'] * (share['sellprice'] - share['buyprice']) * 0.01) - share['stampduty'] - share['buytradecost'] - share['selltradecost']
+            share['percentage'] = ((10000 * (share['value'] - share['stampduty'] - share['buytradecost'] - share['selltradecost']) / (share['buyprice'] * share['quantity'])) - 100)
+        
+            
             # If input validated, try to write to database
             if inputValidation:
                 goToIndex = 0
                 data = [session['user_id'], session['portfolio'], share['epic'], share['status'], share['buydate'],
                         share['buyprice'], share['quantity'], share['stampduty'], share['buytradecost'],
                         share['buycost'], share['target'], share['stoploss'], share['selldate'], 
-                        share['sellprice'], share['selltradecost'], share['value'], share['comment']]
+                        share['sellprice'], share['selltradecost'], share['value'], share['profitloss'],
+                        share['comment']]
         
                 # If entering a new entry
                 if submit == 'submit':
                     try:
-                       goToIndex = cursor.execute('INSERT INTO shares (userid, portfolioid, epic, status, buydate, buyprice, quantity, stampduty, buytradecost, buycost, target, stoploss, selldate, sellprice, selltradecost, value, comment) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', data)
+                       goToIndex = cursor.execute('INSERT INTO shares (userid, portfolioid, epic, status, buydate, buyprice, quantity, stampduty, buytradecost, buycost, target, stoploss, selldate, sellprice, selltradecost, value, profitloss, comment) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', data)
                        conn.commit()
                     except:
                         pass
@@ -207,7 +212,7 @@ def shares():
                 elif submit == 'update':
                     data.append(request.form.get('id'))
                     try:
-                        cursor.execute('UPDATE shares SET userid=%s, portfolioid=%s, epic=%s, status=%s, buydate=%s, buyprice=%s, quantity=%s, stampduty=%s, buytradecost=%s, buycost=%s, target=%s, stoploss=%s, selldate=%s, sellprice=%s, selltradecost=%s, value=%s, comment=%s WHERE id=%s', data)
+                        cursor.execute('UPDATE shares SET userid=%s, portfolioid=%s, epic=%s, status=%s, buydate=%s, buyprice=%s, quantity=%s, stampduty=%s, buytradecost=%s, buycost=%s, target=%s, stoploss=%s, selldate=%s, sellprice=%s, selltradecost=%s, value=%s, profitloss=%s, comment=%s WHERE id=%s', data)
                         conn.commit()
                     except Exception as e:
                         flash(e)
@@ -255,6 +260,8 @@ def shares():
                 'buydate': str(datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'))
             }   
         share['daysHeld'] = None
+        dividends = []
+        dividendtotal = 0
             
     elif submit == 'update':
         nav['index'] = data.index({'id': id}) + 1
@@ -268,7 +275,13 @@ def shares():
             sellDatetime = datetime.datetime.strptime(str(share['selldate']), '%Y-%m-%d %H:%M:%S')
             share['daysHeld'] = (sellDatetime - buyDatetime).days
         
-    return render_template('shares.html', nav=nav, share=share, submit=submit, portfolio=portfolio, portfolio_index=portfolio_index)
+        cursor.execute('SELECT date, amount FROM cash WHERE shareid=%s AND userid=%s AND portfolioid=%s ORDER BY date DESC', [id, session['user_id'], session['portfolio']])
+        dividends = cursor.fetchall()
+        dividendtotal = 0
+        for i in dividends:
+            dividendtotal += i['amount']
+        
+    return render_template('shares.html', nav=nav, share=share, submit=submit, portfolio=portfolio, portfolio_index=portfolio_index, dividends=dividends, dividendtotal=dividendtotal)
 
 
 
@@ -347,18 +360,34 @@ def cash():
     
     if request.method == 'POST':
         
+        conn = mysql.connect()
+        cursor = conn.cursor()
+        
         # Error checking
         try:
             cash_amount = float(request.form.get('cash_amount'))
         except TypeError:
             return redirect(url_for('cash'))
         
-        conn = mysql.connect()
-        cursor = conn.cursor()
-        cursor.execute('INSERT INTO cash (userid, portfolioid, amount, categoryid, notes, date) VALUES (%s, %s, %s, %s, %s, %s)',
-            [session['user_id'], session['portfolio'], cash_amount, request.form.get('cash_category'), request.form.get('cash_notes'), request.form.get('cash_date')])
-        conn.commit()
-
+        if request.form.get('sharedividend'):
+            epic = request.form.get('sharedividend')
+            cursor.execute('SELECT id, quantity FROM shares WHERE epic=%s AND status=1 AND userid=%s AND portfolioid=%s', [epic, session['user_id'], session['portfolio']])
+            data = cursor.fetchall()
+            total = 0
+            for i in data:
+                total += int(i['quantity'])
+            for i in data:
+                ratio = i['quantity'] / total
+                cursor.execute('INSERT INTO cash (userid, portfolioid, amount, categoryid, shareid, notes, date) VALUES (%s, %s, %s, %s, %s, %s, %s)',
+                    [session['user_id'], session['portfolio'], cash_amount * ratio, request.form.get('cash_category'), i['id'], request.form.get('cash_notes'), request.form.get('cash_date')])
+                conn.commit()
+        else:
+            shareid = None
+            cursor.execute('INSERT INTO cash (userid, portfolioid, amount, categoryid, shareid, notes, date) VALUES (%s, %s, %s, %s, %s, %s, %s)',
+                [session['user_id'], session['portfolio'], cash_amount, request.form.get('cash_category'), shareid, request.form.get('cash_notes'), request.form.get('cash_date')])
+            conn.commit()
+            
+        
         # Update users capital invested        
         if request.form.get('cash_category') == '1':
             cursor.execute('UPDATE portfolios SET capital=capital+%s WHERE userid=%s AND id=%s',
@@ -385,7 +414,6 @@ def cash():
             cursor.execute('UPDATE log SET cash=cash+%s WHERE date>=%s AND userid=%s AND portfolioid=%s',
                         [cash_amount, request.form.get('cash_date'), session['user_id'], session['portfolio']])
             conn.commit()
-            
 
         return redirect(url_for('cash'))
             
@@ -411,6 +439,8 @@ def log():
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC', [session['user_id'], session['portfolio']])
     log = cursor.fetchall()
+    cursor.execute('SELECT ftse100 FROM portfolios WHERE userid=%s AND id=%s', [session['user_id'], session['portfolio']])
+    ftse100base = cursor.fetchone()['ftse100']
     
     # Update capital/cash in logging
     """for i in range(len(log)):
@@ -425,7 +455,7 @@ def log():
         cursor.execute('UPDATE log SET capital=%s, cash=%s WHERE id=%s', [capital, cash - buys + sells, log[i]['id']])
         conn.commit()"""
     
-    return render_template('log.html', log=log, portfolio=portfolio, portfolio_index=portfolio_index)
+    return render_template('log.html', log=log, portfolio=portfolio, portfolio_index=portfolio_index, ftse100base=ftse100base)
 
 
 
@@ -455,7 +485,9 @@ def controlpanel():
                         valid = False
                         break
             if valid:
-                cursor.execute('INSERT INTO portfolios (userid, name) VALUES (%s, %s)', [session['user_id'], request.form.get('addportfolioname')])
+                quoteLogin()
+                ftse100 = quote('UKX', 'price')
+                cursor.execute('INSERT INTO portfolios (userid, name, ftse100) VALUES (%s, %s, %s)', [session['user_id'], request.form.get('addportfolioname'), ftse100])
                 conn.commit()
         
         elif request.form.get('submit') == 'Rename':
@@ -520,16 +552,18 @@ def updatesharedata():
     cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 1', [session['user_id'], session['portfolio']])
     lastlog = cursor.fetchone()
     ftse100 = quote('UKX', 'price')
+
+    # Calculate capital/cash
+    cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
+    capital = float(cursor.fetchone()['capital'])
+    cursor.execute('SELECT SUM(amount) AS csh FROM cash WHERE date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
+    cash = float(cursor.fetchone()['csh'])
+    cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
+    cash -= float(cursor.fetchone()['buys'])
+    cursor.execute('SELECT SUM(value) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
+    cash += float(cursor.fetchone()['sells'])
     
     if lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d") or lastlog['exposure'] != exposure or lastlog['ftse100'] != ftse100:
-        cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-        capital = float(cursor.fetchone()['capital'])
-        cursor.execute('SELECT SUM(amount) AS csh FROM cash WHERE date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-        cash = float(cursor.fetchone()['csh'])
-        cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-        cash -= float(cursor.fetchone()['buys'])
-        cursor.execute('SELECT SUM(value) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-        cash += float(cursor.fetchone()['sells'])
         if lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d"):
             cursor.execute('UPDATE log SET exposure=%s, capital=%s, cash=%s, ftse100=%s WHERE id=%s', [exposure, capital, cash, ftse100, lastlog['id']])
         else:
@@ -571,6 +605,18 @@ def updateindex():
     except:
         pass
     return 'true'
+
+
+
+
+
+@app.route('/getsharedata')
+def getsharedata():
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute('SELECT DISTINCT epic, company FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE status=1 AND userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
+    sharedata = cursor.fetchall()
+    return jsonify(sharedata)
 
 
 
@@ -625,7 +671,9 @@ def register():
     
     # Add default portfolio
     id = cursor.lastrowid
-    cursor.execute('INSERT INTO portfolio (userid, name) VALUES (%s, %s)', [id, 'Main'])
+    quoteLogin()
+    ftse100 = quote('UKX', 'price')
+    cursor.execute('INSERT INTO portfolio (userid, name, ftse100) VALUES (%s, %s, %s)', [id, 'Main', ftse100])
     lastportfolioid = cursor.lastrowid
     cursor.execute('UPDATE users SET lastportfolioid=%s WHERE id=%s', [lastportfolioid, id])
     conn.commit()

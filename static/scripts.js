@@ -259,8 +259,28 @@ $(function() {
     });
     
     // Cash Page
-    // Implemente datepicker
+    // Implement datepicker
     $('#cashdatepicker').datepicker({
         dateFormat: 'yy-mm-dd'
+    });
+    
+    // Cash Page
+    $('#cash_category').on('change', function() {
+        if ($('#cash_category').val() == '2') {
+            var $options = '';
+            $.getJSON('/getsharedata', function(data) {
+                $.each(data, function(key, val) {
+                    $options += '<option value="' + val['epic'] + '">' + val['epic'] + ' (' + val['company'] + ')</option>';
+                });
+            }).done(function() {
+                $start = '<div class="form-group" id="extraselect"><div class="col-sm-10 col-sm-push-2"><select class="form-control" name="sharedividend" id="sharedividend">';
+                $end = '</select></div></div>';
+                $thing = $('#cashform > div:nth-child(2)').after($start + $options + $end);
+            });
+        } else {
+            if ($('#extraselect')) {
+                $('#extraselect').remove();
+            }
+        }
     });
 });

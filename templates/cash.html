@@ -18,7 +18,7 @@
                 </div>
             </div>
             <div class="panel-body">
-                <form class="form-horizontal" action="{{ url_for('cash') }}" method="post" data-toggle="validator">
+                <form class="form-horizontal" id="cashform" action="{{ url_for('cash') }}" method="post" data-toggle="validator">
                     <div class="form-group">
                         <label for="cash_amount" class="col-sm-2 control-label">Amount</label>
                         <div class="col-sm-10">
@@ -47,9 +47,7 @@
                     <div class="form-group">
                         <label for="cash_date" class="col-sm-2 control-label">Date</label>
                         <div class="col-sm-10">
-                            <div class="input-group">
-                                <input type="text" class="form-control datepicker" id="cashdatepicker" name="cash_date" placeholder="Date" required>
-                            </div>
+                            <input type="text" class="form-control datepicker" id="cashdatepicker" name="cash_date" placeholder="Date" required>
                             <div class="help-block with-errors"></div>
                         </div>
                     </div>
