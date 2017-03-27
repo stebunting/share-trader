@@ -46,72 +46,60 @@ function updateCellColours(ident) {
 }
 
 // Get bid price and update cell in table
-function updateBid(company) {
-    var value = company['bid'] * company['quantity'] * 0.01
-    var costs = company['buytradecost'] + company['selltradecost'] + company['stampduty']
-    var profitloss = value - (company['buyprice'] * company['quantity'] * 0.01) - costs
-    var percentage = ((10000 * (value - costs) / (company['buyprice'] * company['quantity'])) - 100)
+function updateRow(company) {
+
     // Update row
     var ident = '#' + company['id'] + '-' + company['epic'] + '-'
-    $(ident + 'bid').text(company['bid'].toFixed(2))
-    $(ident + 'value').text(gbp(value))
-    $(ident + 'profitloss').text(gbp(profitloss))
-    $(ident + 'percentage').text(percent(percentage))
+    $(ident + 'bid').text(company['sellprice'].toFixed(2))
+    $(ident + 'value').text(gbp(company['value']))
+    $(ident + 'profitloss').text(gbp(company['profitloss']))
+    $(ident + 'percentage').text(percent(company['percentage']))
     
-    var change = value - (company['sellprice'] * company['quantity'] * 0.01)
-    
-    // Calculate market exposure
-    var exposure = getValue('exposure') + change
-    $('#exposure').text(gbp(exposure))
-    
-    // Calculate current sale value
-    var salevalue = getValue('salevalue') + change
-    $('#salevalue').text(gbp(salevalue))
-    
-    // Calculate profit/loss
-    var totalprofitloss = getValue('profitloss') + change
-    $('#profitloss').text(gbp(totalprofitloss))
-    
-    // Calculate percentage
-    totalpercentage = 100 * ((salevalue + getValue('cash')) / getValue('capital')) - 100
-    $('#percentage').text(percent(totalpercentage))
-    
+    // Update colours
     updateCellColours(ident)
-    
-    data = {
-        'id': company['id'],
-        'bid': company['bid'],
-        'value': value,
-        'profitloss': profitloss,
-        'percentage': percentage
-    }
-    return data;
 }
 
-// Get updated share price data
+// Update details (exposure, profit/loss etc.)
+function updateTotals(data) {
+    $('#exposure').text(gbp(data['exposure']))
+    $('#salevalue').text(gbp(data['salevalue']))
+    $('#profitloss').text(gbp(data['profitloss']))
+    $('#percentage').text(percent(data['percentage']))
+    
+    if (data['dailyprofit'] > 0) {
+        if ($('#dailyprofit').hasClass('loss')) {
+            $('#dailyprofit').removeClass('loss').addClass('profit');
+        }
+    }
+    $('#dailyprofit').text(gbp(data['dailyprofit']))
+    
+    if (data['dailypercent'] > 0) {
+        if ($('#dailypercent').hasClass('loss')) {
+            $('#dailypercent').removeClass('loss').addClass('profit');
+        }
+    }
+    $('#dailypercent').text(percent(data['dailypercent']))
+}
+
+// Refresh onscreen data
 function refreshPrices() {
+
+    // Set 'refreshPrices' button to loading...
     var $btn = $('#refreshPrices').button('loading');
     if ($btn.hasClass('btn-danger')) {
         $btn.addClass('btn-primary').removeClass('btn-danger');
     };
     $btn.addClass('btn-primary').removeClass('btn-danger');
     
+    // Get latest share price data from application
+    // Send each price to updateBid function
     $.getJSON('/updatesharedata', function(data) {
-        returnData = []
-        $.each(data, function(key, val) {
-            returnData.push(updateBid(val));
+        $.each(data[0], function(key, val) {
+            updateRow(val);
         });
+        updateTotals(data[1]);
     }).done(function() {
-        var exp = $('#exposure').text().replace('£', '').replace(',', '');
-        
-        $.ajax({
-            url: '/updatedb',
-            type: 'POST',
-            data: JSON.stringify([exp, returnData]),
-            contentType: 'application/json; charset=utf-8',
-            dataType: 'json',
-            async: false
-        });
+    
         // When done, set refresh button active and reset log button
         $btn.button('reset');
         $('#logState').button('reset').addClass('btn-primary').removeClass('btn-success');
@@ -262,7 +250,7 @@ $(function() {
         if (parseFloat($('#selltradecost').val()) > 0) {
             sellprice -= parseFloat($('#selltradecost').val());
         }
-        $('#totalsale').focus().val(sellprice.toFixed(2));
+        $('#value').focus().val(sellprice.toFixed(2));
     });
     
     $('#cashdatepicker').datepicker({

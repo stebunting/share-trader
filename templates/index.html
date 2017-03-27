@@ -45,6 +45,14 @@
                         <div class="col-md-7" id="percentage">{% if portfolio[portfolio_index]['capital'] != 0 %}{{ ((100 * ((details['market_exposure'] - details['sale_costs'] + portfolio[portfolio_index]['cash']) / portfolio[portfolio_index]['capital'])) - 100)|percentage }}{% else %}{{ 0|percentage }}{% endif %}</div>
                     </div>
                     <div class="row">
+                        <div class="col-md-5">Daily Performance</div>
+                        <div class="col-md-7 {% if details['dailyprofit'] < 0 %}loss{% else %}profit{% endif %}" id="dailyprofit">{{ details['dailyprofit']|gbp }}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-5"></div>
+                        <div class="col-md-7 {% if details['dailyprofit'] < 0 %}loss{% else %}profit{% endif %}" id="dailypercent">{{ details['dailypercent']|percentage }}</div>
+                    </div>
+                    <div class="row">
                         <div class="col-md-5">Last Updated</div>
                         <div class="col-md-7" id="lastupdated">{{ portfolio[portfolio_index]['lastupdated'] }}</div>
                     </div>

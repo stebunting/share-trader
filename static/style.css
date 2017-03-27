@@ -54,3 +54,13 @@ td > a:hover {
     padding: 0;
     margin: 0;
 }
+
+.loss {
+    font-weight: bold;
+    color: #f44336;
+}
+
+.profit {
+    font-weight: bold;
+    color: #0c9;
+}

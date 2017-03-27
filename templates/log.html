@@ -23,15 +23,17 @@
     		<tr>
             	<th>Date</th>
             	<th>Market Exposure</th>
+            	<th>Profit / Loss</th>
             	<th>Capital</th>
             	<th>Cash</th>
             	<th>FTSE 100</th>
             </tr>
         </thead>
     	<tbody>
-        	{% for item in log %}<tr>
+        	{% for item in log %}<tr>{% set percent = ((100 * ((item['exposure'] + item['cash']) / item['capital'])) - 100) %}{% set profitloss = item['exposure'] - item['capital'] %}
                 <td>{{ item['date']|dateFormat }}</td>
                 <td>{{ item['exposure']|gbp }}</td>
+                <td class="{% if percent < 0 %}loss{% else %}profit{% endif %}">{{ profitloss|gbp }} | {{ percent|percentage }}</td>
                 <td>{{ item['capital']|gbp }}</td>
                 <td>{{ item['cash']|gbp }}</td>
                 <td>{{ item['ftse100']|shareprice }}</td>
