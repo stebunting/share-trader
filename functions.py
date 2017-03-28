@@ -59,3 +59,11 @@ def login_required(f):
             return redirect(url_for('login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
+
+def verifyDate(test):
+    try:
+        verified = datetime.datetime.strptime(str(test), "%Y-%m-%d").strftime("%Y-%m-%d")
+        return verified
+    except:
+        return False
+    

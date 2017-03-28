@@ -55,7 +55,7 @@
 					<li role="presentation" class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Portfolios <span class="caret"></span></a>
                         <ul class="dropdown-menu">
-                            {% for entry in portfolio[0] %}<li{% if entry['id'] == session['portfolio'] %} class="disabled"{% endif %}><a class="portfoliochange" id="{{ entry['id'] }}" href="#">{{ entry['name'] }}</a></li>
+                            {% for entry in portfolios %}<li{% if entry['id'] == session['portfolio'] %} class="disabled"{% endif %}><a class="portfoliochange" id="{{ entry['id'] }}" href="#">{{ entry['name'] }}</a></li>
                             {% endfor %}
                         </ul>
                     </li>
@@ -139,9 +139,17 @@
 		</div>
 	</nav>
 	<div class="container">
+	{% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}<div class="alert alert-{{ category }} text-center" role="alert">
+            <li>{{ message }}</li>
+        </div>{% endfor %}
+  {% endif %}{% endwith %}
+
+{#
     {% if get_flashed_messages() %}<header>
             <div class="alert alert-info text-center" role="alert">{{ get_flashed_messages() | join(' ') }}</div>
-        </header>{% endif %}
+        </header>{% endif %}#}
 {% block body %}{% endblock %}
     </div>
 </body>

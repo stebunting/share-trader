@@ -28,7 +28,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for row in portfolio[0] %}<tr{% if row['id'] == session['portfolio'] %} class="warning"{% endif %}>
+                                {% for row in portfolios %}<tr{% if row['id'] == session['portfolio'] %} class="warning"{% endif %}>
                                     <form action="{{ url_for('controlpanel') }}" method="post">
                                         <td><input type="text" class="form-control" name="rename" value="{{ row['name'] }}"></td>
                                         <td>{{ row['exposure']|gbp }}</td>

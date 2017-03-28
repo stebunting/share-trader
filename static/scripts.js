@@ -122,7 +122,27 @@ function refreshPrices() {
         };
     });   
 }
-    
+
+// Function to print extra select on statement page
+function divPicker() {
+    if ($('#cash_category').val() == '2') {
+        var $options = '';
+        $.getJSON('/getsharedata', function(data) {
+            $.each(data, function(key, val) {
+                $options += '<option value="' + val['epic'] + '">' + val['epic'] + ' (' + val['company'] + ')</option>';
+            });
+        }).done(function() {
+            $start = '<div class="form-group" id="extraselect"><div class="col-sm-10 col-sm-push-2"><select class="form-control" name="sharedividend" id="sharedividend">';
+            $end = '</select></div></div>';
+            $thing = $('#cashform > div:nth-child(2)').after($start + $options + $end);
+        });
+    } else {
+        if ($('#extraselect')) {
+            $('#extraselect').remove();
+        }
+    }
+}
+
 $(function() {
     // Nav Bar
     // Changes portfolio when menu item selected
@@ -262,31 +282,17 @@ $(function() {
         $('#value').focus().val(sellprice.toFixed(2));
     });
     
-    // Cash Page
+    // Statement Page
     // Implement datepicker
     $('#cashdatepicker').datepicker({
         dateFormat: 'yy-mm-dd'
     });
     
-    // Cash Page
-    $('#cash_category').on('change', function() {
-        if ($('#cash_category').val() == '2') {
-            var $options = '';
-            $.getJSON('/getsharedata', function(data) {
-                $.each(data, function(key, val) {
-                    $options += '<option value="' + val['epic'] + '">' + val['epic'] + ' (' + val['company'] + ')</option>';
-                });
-            }).done(function() {
-                $start = '<div class="form-group" id="extraselect"><div class="col-sm-10 col-sm-push-2"><select class="form-control" name="sharedividend" id="sharedividend">';
-                $end = '</select></div></div>';
-                $thing = $('#cashform > div:nth-child(2)').after($start + $options + $end);
-            });
-        } else {
-            if ($('#extraselect')) {
-                $('#extraselect').remove();
-            }
-        }
-    });
+    // Statement Page
+    $('#cash_category').on('change', divPicker);
+    if ($('#cash_category').val() == 2) {
+        divPicker();
+    }
     
     // Charts Page
     // Implement 2 datetimepickers on startdate and enddate

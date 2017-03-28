@@ -16,39 +16,39 @@
                 <div class="panel-body">
                     <div class="row">
                         <div class="col-md-5">Market Exposure</div>
-                        <div class="col-md-7" id="exposure">{{ details['market_exposure']|gbp }}</div>
+                        <div class="col-md-7" id="exposure">{{ portfoliodetails['exposure']|gbp }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Current Sale Value</div>
-                        <div class="col-md-7" id="salevalue">{{ (details['market_exposure'] - details['sale_costs'])|gbp }}</div>
+                        <div class="col-md-7" id="salevalue">{{ (portfoliodetails['exposure'] - portfoliodetails['sale_costs'])|gbp }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Invested Capital</div>
-                        <div class="col-md-7" id="capital">{{ portfolio[0][portfolio_index]['capital']|gbp }}</div>
+                        <div class="col-md-7" id="capital">{{ portfolios[portfolio_index]['capital']|gbp }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Cash</div>
-                        <div class="col-md-7" id="cash">{{ portfolio[0][portfolio_index]['cash']|gbp }}</div>
+                        <div class="col-md-7" id="cash">{{ portfolios[portfolio_index]['cash']|gbp }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Profit/Loss</div>
-                        <div class="col-md-7" id="profitloss">{{ (details['market_exposure'] - details['sale_costs'] + portfolio[0][portfolio_index]['cash'] - portfolio[0][portfolio_index]['capital'])|gbp }}</div>
+                        <div class="col-md-7" id="profitloss">{{ (portfoliodetails['exposure'] - portfoliodetails['sale_costs'] + portfolios[portfolio_index]['cash'] - portfolios[portfolio_index]['capital'])|gbp }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5"></div>
-                        <div class="col-md-7" id="percentage">{% if portfolio[0][portfolio_index]['capital'] != 0 %}{{ ((100 * ((details['market_exposure'] - details['sale_costs'] + portfolio[0][portfolio_index]['cash']) / portfolio[0][portfolio_index]['capital'])) - 100)|percentage }}{% else %}{{ 0|percentage }}{% endif %}</div>
+                        <div class="col-md-7" id="percentage">{% if portfolios[portfolio_index]['capital'] != 0 %}{{ ((100 * ((portfoliodetails['exposure'] - portfoliodetails['sale_costs'] + portfolios[portfolio_index]['cash']) / portfolios[portfolio_index]['capital'])) - 100)|percentage }}{% else %}{{ 0|percentage }}{% endif %}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Daily Performance</div>
-                        <div class="col-md-7 {% if details['dailyprofit'] < 0 %}loss{% else %}profit{% endif %}" id="dailyprofit">{{ details['dailyprofit']|gbp }}</div>
+                        <div class="col-md-7 {% if portfoliodetails['dailyprofit'] < 0 %}loss{% else %}profit{% endif %}" id="dailyprofit">{{ portfoliodetails['dailyprofit']|gbp }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5"></div>
-                        <div class="col-md-7 {% if details['dailyprofit'] < 0 %}loss{% else %}profit{% endif %}" id="dailypercent">{{ details['dailypercent']|percentage }}</div>
+                        <div class="col-md-7 {% if portfoliodetails['dailyprofit'] < 0 %}loss{% else %}profit{% endif %}" id="dailypercent">{{ portfoliodetails['dailypercent']|percentage }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Last Updated</div>
-                        <div class="col-md-7" id="lastupdated">{{ portfolio[0][portfolio_index]['lastupdated'] }}</div>
+                        <div class="col-md-7" id="lastupdated">{{ portfolios[portfolio_index]['lastupdated'] }}</div>
                     </div>
                 </div>
             </div>
@@ -70,7 +70,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for row in data %}<tr>
+            {% for row in sharedata %}<tr>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-epic" class="text-right"><a href="{{ url_for('shares') }}?submit=update&id={{ row['id'] }}">{{ row['epic'] }}</a></td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-company" class="text-left"><a href="{{ url_for('shares') }}?submit=update&id={{ row['id'] }}">{% filter title %}{{ row['company'].strip() }}{% endfilter %}</a></td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-buyprice" class="text-right">{{ row['buyprice']|shareprice }}</td>
