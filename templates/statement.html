@@ -1,9 +1,48 @@
 {% extends 'layout.html' %}
 
-{% block title%}Statement{% endblock %}
+{% block title%}Cash Statement{% endblock %}
 
 {% block body %}
     <h1>Statement</h1>
+    <div class="col-md-6 col-md-push-6">
+        <form class="form-horizontal" id="cashform" action="{{ url_for('statement') }}" method="post" data-toggle="validator">
+            <div class="form-group">
+                <label for="cash_amount" class="col-sm-2 control-label">Amount</label>
+                <div class="col-sm-10">
+                    <div class="input-group">
+                        <span class="input-group-addon">£</span>
+                        <input type="text" class="form-control" id="cash_amount" name="cash_amount" placeholder="Amount">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="cash_category" class="col-sm-2 control-label">Type</label>
+                <div class="col-sm-10">
+                    <select class="form-control" name="cash_category" id="cash_category">
+                        {% for category in cash_categories %}<option value="{{ category['id'] }}">{{ category['category'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="cash_notes" class="col-sm-2 control-label">Notes</label>
+                <div class="col-sm-10">
+                    <textarea class="form-control" rows="4" id="cash_notes" name="cash_notes"></textarea>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="cash_date" class="col-sm-2 control-label">Date</label>
+                <div class="col-sm-10">
+                    <input type="text" class="form-control datepicker" id="cashdatepicker" name="cash_date" placeholder="Date">
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-10">
+                    <button type="submit" class="btn btn-default">Submit</button>
+                </div>
+            </div>
+        </form>
+    </div>
     <table class="table table-striped table-condensed table-hover">
         <thead>
             <tr>

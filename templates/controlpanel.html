@@ -1,0 +1,143 @@
+{% extends 'layout.html' %}
+
+{% block title%}User{% endblock %}
+
+{% block body %}
+    <h1>User Control Panel</h1>
+
+    <div class="col-md-12">
+        <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+            <div class="panel panel-default">
+                <div class="panel-heading" role="tab" id="headingThree">
+                    <h4 class="panel-title">
+                        <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                        Portfolios
+                        </a>
+                    </h4>
+                </div>
+                <div id="collapseThree" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingThree">
+                    <div class="panel-body">
+                        <table class="table table-striped table-hover table-bordered table-condensed">
+                            <thead>
+                                <tr>
+                                    <th>Portfolio Name</th>
+                                    <th>Exposure</th>
+                                    <th>Invested</th>
+                                    <th>Cash</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in portfolio[0] %}<tr{% if row['id'] == session['portfolio'] %} class="warning"{% endif %}>
+                                    <form action="{{ url_for('controlpanel') }}" method="post">
+                                        <td><input type="text" class="form-control" name="rename" value="{{ row['name'] }}"></td>
+                                        <td>{{ row['exposure']|gbp }}</td>
+                                        <td>{{ row['capital']|gbp }}</td>
+                                        <td>{{ row['cash']|gbp }}</td>
+                                        <td>
+                                            <input type="hidden" name="id" value="{{ row['id'] }}">
+                                            <input type="submit" class="btn btn-default" role="button" name="submit" value="Delete"{% if row['id'] == session['portfolio'] %} disabled="true"{% endif %}>
+                                            <input type="submit" class="btn btn-default" role="button" name="submit" value="Rename">
+                                        </td>
+                                    </form>
+                                </tr>{% endfor %}
+                                <tr>
+                                    <form action="{{ url_for('controlpanel') }}" method="post">
+                                        <td><input type="text" placeholder="New Portfolio" name="addportfolioname" class="form-control"></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td><input type="submit" class="btn btn-default" role="button" name="submit" value="Add"></td>
+                                    </form>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading" role="tab" id="headingTwo">
+                    <h4 class="panel-title">
+                        <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                        Change Username
+                        </a>
+                    </h4>
+                </div>
+                <div id="collapseTwo" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
+                    <div class="panel-body">
+                        <form class="form-horizontal" action="{{ url_for('controlpanel') }}" method="post">
+                            <div class="form-group">
+                                <label for="changeusername_old" class="col-md-4 control-label">Old Username</label>
+                                <div class="col-md-8">
+                                    <input type="text" class="form-control" maxlength="30" id="changeusername_old" name="changeusername_old" placeholder="Old Username">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="changeusername_new" class="col-md-4 control-label">New Username</label>
+                                <div class="col-md-8">
+                                    <input type="text" class="form-control" maxlength="30" id="changeusername_new" name="changeusername_new" placeholder="New Username">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="changeusername_password" class="col-md-4 control-label">Password</label>
+                                <div class="col-md-8">
+                                    <input type="password" class="form-control" maxlength="30" id="changeusername_password" name="changeusername_password" placeholder="Password">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-offset-4 col-md-8">
+                                    <button type="submit" class="btn btn-default" name="submit" value="Change Username">Change</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading" role="tab" id="headingOne">
+                    <h4 class="panel-title">
+                        <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                        Change Password
+                        </a>
+                    </h4>
+                </div>
+                <div id="collapseOne" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne">
+                    <div class="panel-body">
+                        <form class="form-horizontal" action="{{ url_for('controlpanel') }}" method="post">
+                            <div class="form-group">
+                                <label for="changepassword_username" class="col-md-4 control-label">Username</label>
+                                <div class="col-md-8">
+                                    <input type="text" class="form-control" maxlength="30" id="changepassword_username" name="changepassword_username" placeholder="Username">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="changepassword_old" class="col-md-4 control-label">Old Password</label>
+                                <div class="col-md-8">
+                                    <input type="password" class="form-control" maxlength="30" id="changepassword_old" name="changepassword_old" placeholder="Old Password">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="changepassword_new" class="col-md-4 control-label">New Password</label>
+                                <div class="col-md-8">
+                                    <input type="password" class="form-control" maxlength="30" id="changepassword_new" name="changepassword_new" placeholder="New Password">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="changepassword_confirm" class="col-md-4 control-label">Confirm Password</label>
+                                <div class="col-md-8">
+                                    <input type="password" class="form-control" maxlength="30" id="changepassword_confirm" name="changepassword_confirm" placeholder="Confirm Password">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-offset-4 col-md-8">
+                                    <button type="submit" class="btn btn-default" name="submit" value="Change Password">Change Password</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

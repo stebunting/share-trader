@@ -38,8 +38,7 @@
 				<ul class="nav navbar-nav">
 				    {% if session.user_id %}
 					<li><a href="{{ url_for('shares') }}?submit=update">Share Entry</a></li>
-					<li><a href="{{ url_for('cash') }}">Cash Entry</a></li>
-					<li><a href="{{ url_for('statement') }}">Statement</a></li>
+					<li><a href="{{ url_for('statement') }}">Cash Statement</a></li>
 					<li><a href="{{ url_for('log') }}">Log</a></li>
 					<li><a href="{{ url_for('charts') }}">Charts</a></li>
 					<li role="presentation" class="dropdown">

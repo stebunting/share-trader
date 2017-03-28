@@ -282,75 +282,13 @@ def shares():
 
 
 
-@app.route('/statement', methods=['GET'])
+@app.route('/statement', methods=['GET', 'POST'])
 @login_required
 def statement():
-    statement = []
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
-    data = cursor.fetchall()
-    for row in data:
-        statement.append({
-            'id': row['id'],
-            'date': row['buydate'],
-            'transaction': row['company'].title(),
-            'debit': row['buycost'],
-            'credit': '',
-            'notes': '',
-            'type': 'buy'
-        })
-    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s AND status=0', [session['user_id'], session['portfolio']])
-    data = cursor.fetchall()
-    for row in data:
-        statement.append({
-            'id': row['id'],
-            'date': row['selldate'],
-            'transaction': row['company'].title(),
-            'debit': '',
-            'credit': row['value'],
-            'notes': '',
-            'type': 'sell'
-        })
-    cursor.execute('SELECT * FROM cash INNER JOIN cash_categories ON cash.categoryid=cash_categories.id WHERE userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
-    data = cursor.fetchall()
-    for row in data:
-        transaction = {
-            'id': row['shareid'],
-            'date': row['date'],
-            'transaction': 'Cash: {}'.format(row['category']),
-            'debit': '',
-            'credit': '',
-            'notes': row['notes'],
-            'type': row['categoryid']
-        }
-        if row['amount'] > 0:
-            transaction['credit'] = row['amount']
-        else:
-            transaction['debit'] = row['amount'] * -1
-        statement.append(transaction)
-    statement = sorted(statement, key=lambda k: k['date'])
-    balance = 0
-    for row in statement:
-        if row['credit']:
-            row['balance'] = balance + row['credit']
-        else:
-            row['balance'] = balance - row['debit']
-        balance = row['balance']
-    statement = sorted(statement, key=lambda k: k['date'], reverse=True)
-    return render_template('statement.html', statement=statement, portfolio=getPortfolio())
-
-
-
-
-
-@app.route('/cash', methods=['GET', 'POST'])
-@login_required
-def cash():
+    
     if request.method == 'POST':
-        
-        conn = mysql.connect()
-        cursor = conn.cursor()
         
         # Error checking
         try:
@@ -406,15 +344,66 @@ def cash():
                         [cash_amount, request.form.get('cash_date'), session['user_id'], session['portfolio']])
             conn.commit()
 
-        return redirect(url_for('cash'))
-            
-    conn = mysql.connect()
-    cursor = conn.cursor()
+        return redirect(url_for('statement'))
+        
     cursor.execute('SELECT * FROM cash_categories')
     cash_categories = cursor.fetchall()
-            
-    if request.method == 'GET':
-        return render_template('cash.html', cash_categories=cash_categories, portfolio=getPortfolio())
+        
+        
+    statement = []
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
+    data = cursor.fetchall()
+    for row in data:
+        statement.append({
+            'id': row['id'],
+            'date': row['buydate'],
+            'transaction': row['company'].title(),
+            'debit': row['buycost'],
+            'credit': '',
+            'notes': '',
+            'type': 'buy'
+        })
+    cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s AND status=0', [session['user_id'], session['portfolio']])
+    data = cursor.fetchall()
+    for row in data:
+        statement.append({
+            'id': row['id'],
+            'date': row['selldate'],
+            'transaction': row['company'].title(),
+            'debit': '',
+            'credit': row['value'],
+            'notes': '',
+            'type': 'sell'
+        })
+    cursor.execute('SELECT * FROM cash INNER JOIN cash_categories ON cash.categoryid=cash_categories.id WHERE userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
+    data = cursor.fetchall()
+    for row in data:
+        transaction = {
+            'id': row['shareid'],
+            'date': row['date'],
+            'transaction': 'Cash: {}'.format(row['category']),
+            'debit': '',
+            'credit': '',
+            'notes': row['notes'],
+            'type': row['categoryid']
+        }
+        if row['amount'] > 0:
+            transaction['credit'] = row['amount']
+        else:
+            transaction['debit'] = row['amount'] * -1
+        statement.append(transaction)
+    statement = sorted(statement, key=lambda k: k['date'])
+    balance = 0
+    for row in statement:
+        if row['credit']:
+            row['balance'] = balance + row['credit']
+        else:
+            row['balance'] = balance - row['debit']
+        balance = row['balance']
+    statement = sorted(statement, key=lambda k: k['date'], reverse=True)
+    return render_template('statement.html', cash_categories=cash_categories, statement=statement, portfolio=getPortfolio())
 
 
 
@@ -431,7 +420,7 @@ def log():
     ftse100base = cursor.fetchone()['ftse100']
     
     # Update capital/cash in logging
-    for i in range(len(log)):
+    """for i in range(len(log)):
         date = '{} 23:59:59'.format(log[i]['date'].strftime('%Y-%m-%d'))
         cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
         capital = float(cursor.fetchone()['capital'])
@@ -442,7 +431,7 @@ def log():
         cursor.execute('SELECT SUM(value) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
         sells = float(cursor.fetchone()['sells'])
         cursor.execute('UPDATE log SET capital=%s, cash=%s WHERE id=%s', [capital, cash - buys + sells, log[i]['id']])
-        conn.commit()
+        conn.commit()"""
     
     return render_template('log.html', log=log, portfolio=getPortfolio(), ftse100base=ftse100base)
 
