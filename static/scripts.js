@@ -283,4 +283,19 @@ $(function() {
             }
         }
     });
+    
+    // Charts Page
+    // Implement 2 datetimepickers on startdate and enddate
+    var $datepickers = [$('#startdate'), $('#enddate')];
+    $datepickers.forEach(function($entry) {
+        $entry.datepicker({
+            setDate: $entry.attr('value'),
+            dateFormat: 'yy-mm-dd',
+            beforeShow: function() {
+                setTimeout(function() {
+                    $('.ui-datepicker').css('z-index', 99999999999999);
+                }, 0);
+            }
+        });
+    });
 });

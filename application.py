@@ -14,6 +14,9 @@ from passlib.apps import custom_app_context as pwd_context
 import requests
 from lxml import html
 
+import pygal
+from pygal.style import Style
+
 from functions import *
 
 app = Flask(__name__)
@@ -454,6 +457,83 @@ def log():
         conn.commit()"""
     
     return render_template('log.html', log=log, portfolio=portfolio, portfolio_index=portfolio_index, ftse100base=ftse100base)
+
+
+
+
+
+@app.route('/charts', methods=['GET'])
+@login_required
+def charts():
+    
+    today = datetime.datetime.now()
+    startdate = (today + datetime.timedelta(days=-365)).strftime("%Y-%m-%d")
+    enddate = today.strftime("%Y-%m-%d")
+    
+    if request.args.get('default') != 'Default':
+        if request.args.get('startdate'):
+            try:
+                startdate = datetime.datetime.strptime(str(request.args.get('startdate')), "%Y-%m-%d").strftime("%Y-%m-%d")
+            except:
+                pass
+    
+        if request.args.get('enddate'):
+            try:
+                enddate = datetime.datetime.strptime(str(request.args.get('enddate')), "%Y-%m-%d").strftime("%Y-%m-%d")
+            except:
+                pass
+    
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute('SELECT name, ftse100 FROM portfolios WHERE userid=%s AND id=%s', [session['user_id'], session['portfolio']])
+    data = cursor.fetchone()
+    oldftse100 = data['ftse100']
+    portfolioname = data['name']
+    cursor.execute('SELECT * FROM log WHERE date>=%s AND date<=%s AND userid=%s AND portfolioid=%s', [startdate, enddate, session['user_id'], session['portfolio']])
+    data = cursor.fetchall()
+    
+    x_ticks = []
+    x_major_ticks = []
+    interval = len(data) // 10
+    portfolio = []
+    ftse100 = []
+    difference = []
+    maxvalue = 0
+    minvalue = 0
+    for i in range(len(data)):
+        x_ticks.append({
+            'value': i,
+            'label': data[i]['date'].strftime("%Y-%m-%d")
+        })
+        if i % interval == 0:
+            x_major_ticks.append({
+                'value': i,
+                'label': data[i]['date'].strftime("%Y-%m-%d")
+            })
+        percentage = (100 * ((data[i]['exposure'] + data[i]['cash']) / data[i]['capital'])) - 100
+        ftse100percentage = (100 * ((data[i]['ftse100']) / oldftse100)) - 100
+        differencepercentage = percentage - ftse100percentage
+        if percentage > maxvalue:
+            maxvalue = percentage
+        elif percentage < minvalue:
+            minvalue = percentage
+        portfolio.append((i, percentage))
+        ftse100.append((i, ftse100percentage))
+        difference.append((i, differencepercentage))
+    
+    chart_style = Style(
+        colors=('red', 'blue', 'lightgreen'))
+    
+    chart = pygal.XY(height=400, fill=True, style=chart_style, x_label_rotation=20, range=(minvalue-5,maxvalue+5))
+    chart.x_labels = x_major_ticks
+    chart.add(portfolioname, portfolio)
+    chart.add('FTSE100', ftse100)
+    #chart.add('Difference', difference)
+    chart.value_formatter = lambda y: '{:+.2f}%'.format(y)
+    chart.x_value_formatter = lambda x: x_ticks[x]['label']
+    chart_data = chart.render_data_uri()
+    
+    return render_template('charts.html', chart_data=chart_data, startdate=startdate, enddate=enddate)
 
 
 
