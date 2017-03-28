@@ -8,14 +8,8 @@
     </div>
     <div class="col-md-6">
         <div class="panel panel-primary">
-            <div class="panel-heading clearfix">
-                <h3 class="panel-title pull-left">Cash Entry</h3>
-                <div class="input-group" id="portfolioselect">
-                    <select class="form-control" id="portfoliochange">
-                        {% for entry in portfolio %}<option value="{{ entry['id'] }}"{% if entry['id'] == session['portfolio'] %} selected="selected"{% endif %}>{{ entry['name'] }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <div class="panel-heading">
+                <h3 class="panel-title">Cash Entry</h3>
             </div>
             <div class="panel-body">
                 <form class="form-horizontal" id="cashform" action="{{ url_for('cash') }}" method="post" data-toggle="validator">
@@ -24,9 +18,8 @@
                         <div class="col-sm-10">
                             <div class="input-group">
                                 <span class="input-group-addon">£</span>
-                                <input type="text" class="form-control" id="cash_amount" name="cash_amount" placeholder="Amount" type="number" required>
+                                <input type="text" class="form-control" id="cash_amount" name="cash_amount" placeholder="Amount">
                             </div>
-                            <div class="help-block with-errors"></div>
                         </div>
                     </div>
                     <div class="form-group">
@@ -47,8 +40,7 @@
                     <div class="form-group">
                         <label for="cash_date" class="col-sm-2 control-label">Date</label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control datepicker" id="cashdatepicker" name="cash_date" placeholder="Date" required>
-                            <div class="help-block with-errors"></div>
+                            <input type="text" class="form-control datepicker" id="cashdatepicker" name="cash_date" placeholder="Date">
                         </div>
                     </div>
                     <div class="form-group">

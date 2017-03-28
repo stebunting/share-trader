@@ -1,11 +1,14 @@
+// Get value from index page ids
 function getValue(id) {
     return parseFloat($('#' + id).text().replace('£', '').replace(',', ''))
 }
 
+// Format number as currency GBP
 function gbp(value) {
     return value.toLocaleString('en-GB', {style: 'currency', currency: 'GBP'})
 }
 
+// Format number as percent with +/- and 1 decimal place
 function percent(value) {
     var symbol = '';
     if (value >= 0) {
@@ -121,6 +124,22 @@ function refreshPrices() {
 }
     
 $(function() {
+    // Nav Bar
+    // Changes portfolio when menu item selected
+    $('.portfoliochange').on('click', function() {
+        $.ajax({
+            url: '/portfoliochange',
+            type: 'POST',
+            data: JSON.stringify($(this).attr('id')),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            async: false,
+            success: function() {
+                location.reload();
+            }
+        });
+    });
+    
     // Index Page
     // Sends updated data for storing when target/stop loss edited directly from table
     $('.indexform').keydown(function(e){
@@ -140,21 +159,6 @@ $(function() {
             $(this).blur();
         }
     })
-    
-    // Index Page
-    $('#portfoliochange').on('change', function() {
-        $.ajax({
-            url: '/portfoliochange',
-            type: 'POST',
-            data: JSON.stringify($('#portfoliochange').val()),
-            contentType: 'application/json; charset=utf-8',
-            dataType: 'json',
-            async: false,
-            success: function() {
-                location.reload();
-            }
-        });
-    });
     
     // Share Page
     // Updates company and ADVFN link when EPIC changed

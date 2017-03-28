@@ -10,14 +10,8 @@
         </div>
         <div class="col-md-5">
             <div class="panel panel-primary">
-                <div class="panel-heading clearfix">
-                    <h3 class="panel-title pull-left">Portfolio Details</h3>
-                    <div class="input-group" id="portfolioselect">
-                        <select class="form-control" id="portfoliochange">
-                            {% for entry in portfolio %}<option value="{{ entry['id'] }}"{% if entry['id'] == session['portfolio'] %} selected="selected"{% endif %}>{{ entry['name'] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                <div class="panel-heading">
+                    <h3 class="panel-title">Portfolio Details</h3>
                 </div>
                 <div class="panel-body">
                     <div class="row">

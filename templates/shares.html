@@ -20,12 +20,6 @@
                     <button type="button" class="btn btn-default btn-static"{% if not share['id'] %} disabled="true">0{% else %}>{{ nav['index'] }}{% endif %} / {{ nav['numEntries'] }}</button>
                     <a href="{% if nav['nextid'] == None %}#{% else %}{{ url_for('shares') }}?submit=update&id={{ nav['nextid'] }}{% endif %}" type="button" class="btn btn-default linkblack"{% if nav['nextid'] == None or not share['id'] %} disabled="true"{% endif %}>Next</a>
                 </div>
-                <div class="btn-group" role="group">
-                    <select type="button" class="form-control" id="portfoliochange">
-                        {% for entry in portfolio %}<option value="{{ entry['id'] }}"{% if entry['id'] == session['portfolio'] %} selected="selected"{% endif %}>{{ entry['name'] }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
             </div>
         </div>
     </div>

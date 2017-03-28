@@ -3,21 +3,7 @@
 {% block title%}Log{% endblock %}
 
 {% block body %}
-    <div class="row">
-        <div class="col-md-4">
-            <h1>Log</h1>
-        </div>
-        <div class="col-md-8">
-            <div class="pull-right">
-                <div class="btn-group" role="group">
-                    <select type="button" class="form-control" id="portfoliochange">
-                        {% for entry in portfolio %}<option value="{{ entry['id'] }}"{% if entry['id'] == session['portfolio'] %} selected="selected"{% endif %}>{{ entry['name'] }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
+    <h1>Log</h1>
     <table class="table table-striped">
     	<thead>
     		<tr>

@@ -38,7 +38,6 @@ app.jinja_env.filters['dateFormat'] = dateFormat
 
 
 
-
 def getPortfolio():
     conn = mysql.connect()
     cursor = conn.cursor()
@@ -465,6 +464,8 @@ def log():
 @app.route('/charts', methods=['GET'])
 @login_required
 def charts():
+    portfolio = getPortfolio()
+    portfolio_index, portfolio = portfolio[0], portfolio[1]
     
     today = datetime.datetime.now()
     startdate = (today + datetime.timedelta(days=-365)).strftime("%Y-%m-%d")
@@ -489,13 +490,13 @@ def charts():
     data = cursor.fetchone()
     oldftse100 = data['ftse100']
     portfolioname = data['name']
-    cursor.execute('SELECT * FROM log WHERE date>=%s AND date<=%s AND userid=%s AND portfolioid=%s', [startdate, enddate, session['user_id'], session['portfolio']])
+    cursor.execute('SELECT * FROM log WHERE date>=%s AND date<=%s AND userid=%s AND portfolioid=%s ORDER BY date ASC', [startdate, enddate, session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     
     x_ticks = []
     x_major_ticks = []
     interval = len(data) // 10
-    portfolio = []
+    portfoliodata = []
     ftse100 = []
     difference = []
     maxvalue = 0
@@ -517,7 +518,7 @@ def charts():
             maxvalue = percentage
         elif percentage < minvalue:
             minvalue = percentage
-        portfolio.append((i, percentage))
+        portfoliodata.append((i, percentage))
         ftse100.append((i, ftse100percentage))
         difference.append((i, differencepercentage))
     
@@ -526,14 +527,14 @@ def charts():
     
     chart = pygal.XY(height=400, fill=True, style=chart_style, x_label_rotation=20, range=(minvalue-5,maxvalue+5))
     chart.x_labels = x_major_ticks
-    chart.add(portfolioname, portfolio)
+    chart.add(portfolioname, portfoliodata)
     chart.add('FTSE100', ftse100)
     #chart.add('Difference', difference)
     chart.value_formatter = lambda y: '{:+.2f}%'.format(y)
     chart.x_value_formatter = lambda x: x_ticks[x]['label']
     chart_data = chart.render_data_uri()
     
-    return render_template('charts.html', chart_data=chart_data, startdate=startdate, enddate=enddate)
+    return render_template('charts.html', portfolio=portfolio, portfolio_index=portfolio_index, chart_data=chart_data, startdate=startdate, enddate=enddate)
 
 
 
