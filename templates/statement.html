@@ -29,9 +29,9 @@
             </tr>
         </thead>
         <tbody>
-            {% for row in statement %}<tr{% if row['type'] == 'cash' %} class="warning"{% endif %}>
+            {% for row in statement %}<tr{% if row['type'] == 'buy' or row['type'] == 'sell' or row['type'] == 2 %} class="warning"{% endif %}>
                 <td>{{ row['date']|dateFormat }}</td>
-                <td>{% if row['type'] != 'cash' %}<a href="{{ url_for('shares') }}?id={{ row['id'] }}">{% endif %}{{ row['transaction'] }}{% if row['type'] != 'cash' %}</a>{% endif %}{% if row['notes'] %}
+                <td>{% if row['type'] == 'buy' or row['type'] == 'sell' or row['type'] == 2 %}<a href="{{ url_for('shares') }}?id={{ row['id'] }}">{% endif %}{{ row['transaction'] }}{% if row['type'] == 'buy' or row['type'] == 'sell' or row['type'] == 2 %}</a>{% endif %}{% if row['notes'] %}
                 <p class="help-block">{{ row['notes'] }}</p>{% endif %}</td>
                 <td>{% if row['debit'] %}{{ row['debit']|gbp }}{% endif %}</td>
                 <td>{% if row['credit'] %}{{ row['credit']|gbp }}{% endif %}</td>

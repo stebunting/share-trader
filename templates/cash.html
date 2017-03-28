@@ -30,7 +30,7 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="cash_category" class="col-sm-2 control-label">Category</label>
+                        <label for="cash_category" class="col-sm-2 control-label">Type</label>
                         <div class="col-sm-10">
                             <select class="form-control" name="cash_category" id="cash_category">
                                 {% for category in cash_categories %}<option value="{{ category['id'] }}">{{ category['category'] }}</option>
