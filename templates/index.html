@@ -24,19 +24,19 @@
                     </div>
                     <div class="row">
                         <div class="col-md-5">Invested Capital</div>
-                        <div class="col-md-7" id="capital">{{ portfolio[portfolio_index]['capital']|gbp }}</div>
+                        <div class="col-md-7" id="capital">{{ portfolio[0][portfolio_index]['capital']|gbp }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Cash</div>
-                        <div class="col-md-7" id="cash">{{ portfolio[portfolio_index]['cash']|gbp }}</div>
+                        <div class="col-md-7" id="cash">{{ portfolio[0][portfolio_index]['cash']|gbp }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Profit/Loss</div>
-                        <div class="col-md-7" id="profitloss">{{ (details['market_exposure'] - details['sale_costs'] + portfolio[portfolio_index]['cash'] - portfolio[portfolio_index]['capital'])|gbp }}</div>
+                        <div class="col-md-7" id="profitloss">{{ (details['market_exposure'] - details['sale_costs'] + portfolio[0][portfolio_index]['cash'] - portfolio[0][portfolio_index]['capital'])|gbp }}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5"></div>
-                        <div class="col-md-7" id="percentage">{% if portfolio[portfolio_index]['capital'] != 0 %}{{ ((100 * ((details['market_exposure'] - details['sale_costs'] + portfolio[portfolio_index]['cash']) / portfolio[portfolio_index]['capital'])) - 100)|percentage }}{% else %}{{ 0|percentage }}{% endif %}</div>
+                        <div class="col-md-7" id="percentage">{% if portfolio[0][portfolio_index]['capital'] != 0 %}{{ ((100 * ((details['market_exposure'] - details['sale_costs'] + portfolio[0][portfolio_index]['cash']) / portfolio[0][portfolio_index]['capital'])) - 100)|percentage }}{% else %}{{ 0|percentage }}{% endif %}</div>
                     </div>
                     <div class="row">
                         <div class="col-md-5">Daily Performance</div>
@@ -48,7 +48,7 @@
                     </div>
                     <div class="row">
                         <div class="col-md-5">Last Updated</div>
-                        <div class="col-md-7" id="lastupdated">{{ portfolio[portfolio_index]['lastupdated'] }}</div>
+                        <div class="col-md-7" id="lastupdated">{{ portfolio[0][portfolio_index]['lastupdated'] }}</div>
                     </div>
                 </div>
             </div>

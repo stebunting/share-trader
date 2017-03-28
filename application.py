@@ -45,7 +45,7 @@ def getPortfolio():
     portfolio = cursor.fetchall()
     for i in range(len(portfolio)):
         if portfolio[i]['id'] == session['portfolio']:
-            return [i, portfolio]
+            return [portfolio, i]
 
 
 
@@ -55,8 +55,8 @@ def getPortfolio():
 @login_required
 def index():
     portfolio = getPortfolio()
-    portfolio_index, portfolio = portfolio[0], portfolio[1]
-    portfolio[portfolio_index]['lastupdated'] = portfolio[portfolio_index]['lastupdated'].strftime('%a %d %b @ %I:%M:%S%p')
+    index = portfolio[1]
+    portfolio[0][index]['lastupdated'] = portfolio[0][index]['lastupdated'].strftime('%a %d %b @ %I:%M:%S%p')
     
     conn = mysql.connect()
     cursor = conn.cursor()
@@ -75,7 +75,7 @@ def index():
     details['dailyprofit'] = details['market_exposure'] - daily['exposure']
     details['dailypercent'] = 100 * (details['dailyprofit'] / details['market_exposure'])
     
-    return render_template('index.html', data=data, details=details, portfolio=portfolio, portfolio_index=portfolio_index)
+    return render_template('index.html', data=data, details=details, portfolio=portfolio, portfolio_index=index)
 
 
 
@@ -84,9 +84,6 @@ def index():
 @app.route('/shares', methods=['GET', 'POST'])
 @login_required
 def shares():
-    portfolio = getPortfolio()
-    portfolio_index, portfolio = portfolio[0], portfolio[1]
-    
     # Create connection to MySQL DB
     conn = mysql.connect()
     cursor = conn.cursor()
@@ -279,7 +276,7 @@ def shares():
         cursor.execute('SELECT date, amount FROM cash WHERE shareid=%s AND userid=%s AND portfolioid=%s ORDER BY date DESC', [id, session['user_id'], session['portfolio']])
         dividends = cursor.fetchall()
         
-    return render_template('shares.html', nav=nav, share=share, submit=submit, portfolio=portfolio, portfolio_index=portfolio_index, dividends=dividends)
+    return render_template('shares.html', nav=nav, share=share, submit=submit, portfolio=getPortfolio(), dividends=dividends)
 
 
 
@@ -288,9 +285,6 @@ def shares():
 @app.route('/statement', methods=['GET'])
 @login_required
 def statement():
-    portfolio = getPortfolio()
-    portfolio_index, portfolio = portfolio[0], portfolio[1]
-    
     statement = []
     conn = mysql.connect()
     cursor = conn.cursor()
@@ -344,7 +338,7 @@ def statement():
             row['balance'] = balance - row['debit']
         balance = row['balance']
     statement = sorted(statement, key=lambda k: k['date'], reverse=True)
-    return render_template('statement.html', statement=statement, portfolio=portfolio, portfolio_index=portfolio_index)
+    return render_template('statement.html', statement=statement, portfolio=getPortfolio())
 
 
 
@@ -353,9 +347,6 @@ def statement():
 @app.route('/cash', methods=['GET', 'POST'])
 @login_required
 def cash():
-    portfolio = getPortfolio()
-    portfolio_index, portfolio = portfolio[0], portfolio[1]
-    
     if request.method == 'POST':
         
         conn = mysql.connect()
@@ -423,7 +414,7 @@ def cash():
     cash_categories = cursor.fetchall()
             
     if request.method == 'GET':
-        return render_template('cash.html', cash_categories=cash_categories, portfolio=portfolio, portfolio_index=portfolio_index)
+        return render_template('cash.html', cash_categories=cash_categories, portfolio=getPortfolio())
 
 
 
@@ -432,9 +423,6 @@ def cash():
 @app.route('/log')
 @login_required
 def log():
-    portfolio = getPortfolio()
-    portfolio_index, portfolio = portfolio[0], portfolio[1]
-    
     conn = mysql.connect()
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC', [session['user_id'], session['portfolio']])
@@ -443,19 +431,20 @@ def log():
     ftse100base = cursor.fetchone()['ftse100']
     
     # Update capital/cash in logging
-    """for i in range(len(log)):
-        cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolioid=%s', [log[i]['date'], session['user_id'], session['portfolio']])
+    for i in range(len(log)):
+        date = '{} 23:59:59'.format(log[i]['date'].strftime('%Y-%m-%d'))
+        cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
         capital = float(cursor.fetchone()['capital'])
-        cursor.execute('SELECT SUM(amount) AS csh FROM cash WHERE date<=%s AND userid=%s AND portfolioid=%s', [log[i]['date'], session['user_id'], session['portfolio']])
+        cursor.execute('SELECT SUM(amount) AS csh FROM cash WHERE date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
         cash = float(cursor.fetchone()['csh'])
-        cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolioid=%s', [log[i]['date'], session['user_id'], session['portfolio']])
+        cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
         buys = float(cursor.fetchone()['buys'])
-        cursor.execute('SELECT SUM(value) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolioid=%s', [log[i]['date'], session['user_id'], session['portfolio']])
+        cursor.execute('SELECT SUM(value) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
         sells = float(cursor.fetchone()['sells'])
         cursor.execute('UPDATE log SET capital=%s, cash=%s WHERE id=%s', [capital, cash - buys + sells, log[i]['id']])
-        conn.commit()"""
+        conn.commit()
     
-    return render_template('log.html', log=log, portfolio=portfolio, portfolio_index=portfolio_index, ftse100base=ftse100base)
+    return render_template('log.html', log=log, portfolio=getPortfolio(), ftse100base=ftse100base)
 
 
 
@@ -464,9 +453,6 @@ def log():
 @app.route('/charts', methods=['GET'])
 @login_required
 def charts():
-    portfolio = getPortfolio()
-    portfolio_index, portfolio = portfolio[0], portfolio[1]
-    
     today = datetime.datetime.now()
     startdate = (today + datetime.timedelta(days=-365)).strftime("%Y-%m-%d")
     enddate = today.strftime("%Y-%m-%d")
@@ -534,7 +520,7 @@ def charts():
     chart.x_value_formatter = lambda x: x_ticks[x]['label']
     chart_data = chart.render_data_uri()
     
-    return render_template('charts.html', portfolio=portfolio, portfolio_index=portfolio_index, chart_data=chart_data, startdate=startdate, enddate=enddate)
+    return render_template('charts.html', portfolio=getPortfolio(), chart_data=chart_data, startdate=startdate, enddate=enddate)
 
 
 
@@ -544,7 +530,6 @@ def charts():
 @login_required
 def controlpanel():
     portfolio = getPortfolio()
-    portfolio_index, portfolio = portfolio[0], portfolio[1]
     
     conn = mysql.connect()
     cursor = conn.cursor()
@@ -574,7 +559,7 @@ def controlpanel():
             if not request.form.get('rename'):
                 valid = False
             else:
-                for i in portfolio:
+                for i in portfolio[0]:
                     if i['name'].lower() == request.form.get('rename').lower():
                         valid = False
                         break
@@ -582,13 +567,41 @@ def controlpanel():
                 cursor.execute('UPDATE portfolios SET name=%s WHERE userid=%s AND id=%s', [request.form.get('rename'), session['user_id'], request.form.get('id')])
                 conn.commit()
             
-        portfolio = getPortfolio()
-        portfolio_index, portfolio = portfolio[0], portfolio[1]
+            portfolio = getPortfolio()
+        
+        elif request.form.get('submit') == 'Change Username':
+            if request.form.get('changeusername_old') and request.form.get('changeusername_new') and request.form.get('changeusername_password'):
+                cursor.execute('SELECT * FROM users WHERE id=%s AND username=%s', [session['user_id'], request.form.get('changeusername_old')])
+                data = cursor.fetchone()
+                if pwd_context.verify(request.form.get('changeusername_password'), data['password']):
+                    try:
+                        cursor.execute('UPDATE users SET username=%s WHERE id=%s', [request.form.get('changeusername_new'), session['user_id']])
+                        conn.commit()
+                    except:
+                        flash('Username change failed')
+                else:
+                    flash('Wrong password')
+        
+        elif request.form.get('submit') == 'Change Password':
+            if request.form.get('changepassword_username') and request.form.get('changepassword_old') and request.form.get('changepassword_new') \
+                and request.form.get('changepassword_confirm') and request.form.get('changepassword_new') == request.form.get('changepassword_confirm'):
+                cursor.execute('SELECT * FROM users WHERE id=%s AND username=%s', [session['user_id'], request.form.get('changepassword_username')])
+                data = cursor.fetchone()
+                if pwd_context.verify(request.form.get('changepassword_old'), data['password']):
+                    try:
+                        cursor.execute('UPDATE users SET password=%s WHERE id=%s', [pwd_context.encrypt(request.form.get('changepassword_new')), session['user_id']])
+                        conn.commit()
+                        flash('Password changed!')
+                    except:
+                        flash('Password change failed')
+                else:
+                    flash('Wrong password')
+            
     
     cursor.execute('SELECT username FROM users WHERE id=%s', [session['user_id']])
     username = cursor.fetchone()['username']
     
-    return render_template('controlpanel.html', username=username, portfolio=portfolio, portfolio_index=portfolio_index)
+    return render_template('controlpanel.html', username=username, portfolio=portfolio)
 
 
 
