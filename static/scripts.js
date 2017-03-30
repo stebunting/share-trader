@@ -17,6 +17,7 @@ function percent(value) {
     return symbol + parseFloat(value).toFixed(1) + '%'
 }
 
+// Update row colours
 function updateCellColours(ident) {
     var target = $(ident + 'target-edit').val();
     var stoploss = $(ident + 'stoploss-edit').val();
@@ -67,25 +68,33 @@ function updateRow(company) {
 }
 
 // Update details (exposure, profit/loss etc.)
-function updateTotals(data) {
-    $('#exposure').text(gbp(data['exposure']))
-    $('#salevalue').text(gbp(data['salevalue']))
-    $('#profitloss').text(gbp(data['profitloss']))
-    $('#percentage').text(percent(data['percentage']))
+function updateTotals(company) {
+    $('#exposure').text(gbp(company['exposure']))
+    $('#salevalue').text(gbp(company['salevalue']))
+    $('#profitloss').text(gbp(company['profitloss']))
+    $('#percentage').text(percent(company['percentage']))
     
-    if (data['dailyprofit'] > 0) {
+    if (company['dailyprofit'] > 0) {
         if ($('#dailyprofit').hasClass('loss')) {
             $('#dailyprofit').removeClass('loss').addClass('profit');
         }
+    } else {
+        if ($('#dailyprofit').hasClass('success')) {
+            $('#dailyprofit').removeClass('success').addClass('loss');
+        }
     }
-    $('#dailyprofit').text(gbp(data['dailyprofit']))
+    $('#dailyprofit').text(gbp(company['dailyprofit']))
     
-    if (data['dailypercent'] > 0) {
+    if (company['dailypercent'] > 0) {
         if ($('#dailypercent').hasClass('loss')) {
             $('#dailypercent').removeClass('loss').addClass('profit');
         }
+    } else {
+        if ($('#dailyprofit').hasClass('success')) {
+            $('#dailyprofit').removeClass('success').addClass('loss');
+        }
     }
-    $('#dailypercent').text(percent(data['dailypercent']))
+    $('#dailypercent').text(percent(company['dailypercent']))
 }
 
 // Refresh onscreen data
@@ -100,7 +109,7 @@ function refreshPrices() {
     
     // Get latest share price data from application
     // Send each price to updateBid function
-    $.getJSON('/updatesharedata', function(data) {
+    $.getJSON('/updateshareprices', function(data) {
         $.each(data[0], function(key, val) {
             updateRow(val);
         });
@@ -124,12 +133,16 @@ function refreshPrices() {
 }
 
 // Function to print extra select on statement page
-function divPicker() {
+function divPicker(epic) {
     if ($('#cash_category').val() == '2') {
         var $options = '';
-        $.getJSON('/getsharedata', function(data) {
+        $.getJSON('/getepics', function(data) {
             $.each(data, function(key, val) {
-                $options += '<option value="' + val['epic'] + '">' + val['epic'] + ' (' + val['company'] + ')</option>';
+                $options += '<option value="' + val['epic'] + '"'
+                if (epic == val['epic']) {
+                    $options += ' selected="selected"'
+                }
+                $options += '>' + val['epic'] + ' (' + val['company'] + ')</option>';
             });
         }).done(function() {
             $start = '<div class="form-group" id="extraselect"><div class="col-sm-10 col-sm-push-2"><select class="form-control" name="sharedividend" id="sharedividend">';
@@ -154,8 +167,10 @@ $(function() {
             contentType: 'application/json; charset=utf-8',
             dataType: 'json',
             async: false,
-            success: function() {
-                location.reload();
+            success: function(msg) {
+                if (msg == 'true') {
+                    location.reload();
+                }
             }
         });
     });
@@ -164,26 +179,28 @@ $(function() {
     // Sends updated data for storing when target/stop loss edited directly from table
     $('.indexform').keydown(function(e){
         if(e.keyCode == 13){
-            var ident = $(this).attr('id')
+            $element = $(this)
+            var ident = $element.attr('id')
             $.ajax({
                 url: '/updateindex',
                 type: 'POST',
-                data: JSON.stringify([ident, $(this).val()]),
+                data: JSON.stringify([ident, $element.val()]),
                 contentType: 'application/json; charset=utf-8',
                 dataType: 'json',
                 async: false,
-                success: function(msg) {}
+                success: function(val) {
+                    var data = ident.split('-');
+                    updateCellColours('#' + data[0] + '-' + data[1] + '-');
+                    $element.val(val.toFixed(2)).blur();
+                }
             });
-            var data = ident.split('-');
-            updateCellColours('#' + data[0] + '-' + data[1] + '-');
-            $(this).blur();
         }
     })
     
     // Share Page
     // Updates company and ADVFN link when EPIC changed
     $('#epic').keyup(function() {
-        $.getJSON('/company?epic=' + $('#epic').val(), function(data) {
+        $.getJSON('/getcompanyname?epic=' + $('#epic').val(), function(data) {
             if (data != '') {
                 $('#company').text(data[0]['company']);
                 $('#company').attr('value', data[0]['company']);
@@ -277,7 +294,7 @@ $(function() {
             sellprice += parseFloat($('#sellprice').val()) * 0.01 * parseInt($('#quantity').val());
         }
         if (parseFloat($('#selltradecost').val()) > 0) {
-            sellprice -= parseFloat($('#selltradecost').val());
+            sellprice += parseFloat($('#selltradecost').val());
         }
         $('#value').focus().val(sellprice.toFixed(2));
     });
@@ -291,7 +308,7 @@ $(function() {
     // Statement Page
     $('#cash_category').on('change', divPicker);
     if ($('#cash_category').val() == 2) {
-        divPicker();
+        divPicker($('#cash_category').attr('data-epic'));
     }
     
     // Charts Page

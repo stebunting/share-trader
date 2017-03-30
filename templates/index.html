@@ -70,7 +70,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for row in sharedata %}<tr>
+            {% if sharedata %}{% for row in sharedata %}<tr>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-epic" class="text-right"><a href="{{ url_for('shares') }}?submit=update&id={{ row['id'] }}">{{ row['epic'] }}</a></td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-company" class="text-left"><a href="{{ url_for('shares') }}?submit=update&id={{ row['id'] }}">{% filter title %}{{ row['company'].strip() }}{% endfilter %}</a></td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-buyprice" class="text-right">{{ row['buyprice']|shareprice }}</td>
@@ -81,7 +81,7 @@
                 <td id="{{ row['id'] }}-{{ row['epic']}}-value" class="text-right">{{ (row['sellprice'] * row['quantity'] * 0.01)|gbp }}</td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-profitloss" class="text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}{{ row['profitloss']|gbp }}</td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-percentage" class="text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}{{ row['percentage']|percentage }}</td>
-            </tr>{% endfor %}
+            </tr>{% endfor %}{% else %}<td class="nodata" colspan="10">No shares yet</td>{% endif %}
         </tbody>
     </table>
     <script>refreshPrices();</script>

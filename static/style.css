@@ -68,3 +68,14 @@ td > a:hover {
 tfoot > tr > td {
     font-weight: bold;
 }
+
+.alert {
+    font-variant: small-caps;
+    font-size: 1.2em;
+}
+
+.nodata {
+    font-weight: bold;
+    font-size: 3em;
+    text-align: center;
+}

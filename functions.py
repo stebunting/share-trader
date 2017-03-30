@@ -2,10 +2,13 @@
 import datetime
 import locale
 
+# Flask module
 from flask import session, redirect, url_for, request
 
-from lxml import html
+# HTML request modules
 import requests
+from lxml import html
+
 from functools import wraps
 
 locale.setlocale(locale.LC_ALL, 'en_GB')
@@ -60,6 +63,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# Function to verify date
 def verifyDate(test):
     try:
         verified = datetime.datetime.strptime(str(test), "%Y-%m-%d").strftime("%Y-%m-%d")

@@ -11,12 +11,12 @@ from pymysql.cursors import DictCursor
 
 from passlib.apps import custom_app_context as pwd_context
 
-import requests
-from lxml import html
-
+# Chart modules
 import pygal
+from pygal import Config
 from pygal.style import Style
 
+# Helper functions
 from functions import *
 
 app = Flask(__name__)
@@ -47,9 +47,31 @@ def getPortfolio():
     for i in range(len(portfolios)):
         if portfolios[i]['id'] == session['portfolio']:
             return [portfolios, i]
+            
+# Function to calculate users capital and cash
+# Returns dictionary
+def getAssets(date = "{} 23:59:59".format(datetime.datetime.now().strftime("%Y-%m-%d"))):
+    cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
+    capital = cursor.fetchone()['capital']
+    capital = float(capital) if capital else 0
 
-# Route for Index Page
-# Shows current open positions
+    cursor.execute('SELECT SUM(x) AS money FROM (SELECT SUM(amount) x FROM cash WHERE date<=%s AND userid=%s AND portfolioid=%s UNION SELECT SUM(buycost) * -1 x FROM shares WHERE buydate<=%s AND userid=%s AND portfolioid=%s UNION SELECT SUM(value) x FROM shares WHERE selldate<=%s AND status=0 AND userid=%s AND portfolioid=%s) s',
+        [date, session['user_id'], session['portfolio'], date, session['user_id'], session['portfolio'], date, session['user_id'], session['portfolio']])
+    cash = cursor.fetchone()['money']
+    cash = float(cash) if cash else 0
+    
+    return {
+        'capital': capital,
+        'cash': cash
+    }
+ 
+ # Function to update assets in database
+def updateAssets():
+    assets = getAssets()
+    cursor.execute('UPDATE portfolios SET capital=%s, cash=%s WHERE id=%s AND userid=%s', [assets['capital'], assets['cash'], session['portfolio'], session['user_id']])
+    conn.commit()
+            
+# Route for Index Page, shows current open positions
 @app.route('/')
 @login_required
 def index():
@@ -64,8 +86,17 @@ def index():
     sharedata = cursor.fetchall()
     
     # Get market exposure from last trading day to calculate daily performance
-    cursor.execute('SELECT exposure FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 2', [session['user_id'], session['portfolio']])
-    lastexposure = cursor.fetchall()[1]['exposure']
+    cursor.execute('SELECT exposure, cash FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 2', [session['user_id'], session['portfolio']])
+    data = cursor.fetchall()
+    if len(data) > 1:
+        lastexposure = data[1]['exposure']
+    else:
+        lastexposure = 0
+    
+    cursor.execute('SELECT SUM(x) AS money FROM (SELECT SUM(buycost) x FROM shares WHERE buydate>=CURDATE() AND buydate<=NOW() AND userid=%s AND portfolioid=%s UNION SELECT SUM(value) * -1 x FROM shares WHERE selldate>=CURDATE() AND selldate<=NOW() AND status=0 AND userid=%s AND portfolioid=%s) s',
+        [session['user_id'], session['portfolio'], session['user_id'], session['portfolio']])
+    todaysbuys = cursor.fetchone()['money']
+    todaysbuys = todaysbuys if todaysbuys else 0
     
     # Calculate portfolio details
     # Market exposure, total sale cost (exposure - costs), daily performance
@@ -76,13 +107,15 @@ def index():
     for row in sharedata:
         portfoliodetails['exposure'] += row['sellprice'] * row['quantity'] * 0.01
         portfoliodetails['sale_costs'] += row['selltradecost']
-    portfoliodetails['dailyprofit'] = portfoliodetails['exposure'] - lastexposure
-    portfoliodetails['dailypercent'] = 100 * portfoliodetails['dailyprofit'] / portfoliodetails['exposure']
+    portfoliodetails['dailyprofit'] = portfoliodetails['exposure'] - lastexposure - todaysbuys
+    if portfoliodetails['exposure'] != 0:
+        portfoliodetails['dailypercent'] = 100 * portfoliodetails['dailyprofit'] / portfoliodetails['exposure']
+    else:
+        portfoliodetails['dailypercent'] = 0
     
     return render_template('index.html', sharedata=sharedata, portfoliodetails=portfoliodetails, portfolios=portfolios[0], portfolio_index=portfolio_index)
 
-# Route for Share Detail Page
-# Add/edit/delete share entries
+# Route for Share Entry Page
 @app.route('/shares', methods=['GET', 'POST'])
 @login_required
 def shares():
@@ -97,20 +130,21 @@ def shares():
         # If deleting an entry
         if submit == 'delete':
             cursor.execute('DELETE FROM shares WHERE id=%s AND userid=%s', [id, session['user_id']])
-            conn.commit()
             cursor.execute('SELECT id FROM shares WHERE userid=%s ORDER BY id ASC', [session['user_id']])
             data = cursor.fetchall()
-            j = 0
-            if data[-1]['id'] < id:
-                j = data[-1]['id']
-            else:
-                for i in range(len(data) - 1, -1, -1):
-                    if data[i]['id'] > id:
-                        j = data[i]['id']
-            id = j
-            submit = 'update'
+            oldid = id
+            id = 0
+            if len(data) > 0:
+                if data[-1]['id'] < oldid:
+                    id = data[-1]['id']
+                else:
+                    for i in range(len(data) - 1, -1, -1):
+                        if data[i]['id'] > oldid:
+                            id = data[i]['id']
+            submit = None
             cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s AND portfolioid=%s', [session['user_id'], id, session['portfolio']])
             share = cursor.fetchone()
+            updateAssets()
         
         else:
         
@@ -128,10 +162,12 @@ def shares():
                 'id': id,
                 'epic': request.form.get('epic').upper(),
                 'company': request.form.get('company'),
-                'dividends': float(request.form.get('dividends')),
+                'dividends': 0,
                 'status': request.form.get('status'),
                 'comment': request.form.get('comment')
             }
+            if request.form.get('dividends'):
+                share['dividends'] = float(request.form.get('dividends'))
         
             # Dictionary of posted values to check, will be added to share dict
             # {field: [variable, type, require user entry, default]}
@@ -185,8 +221,9 @@ def shares():
                     else:
                         share[key] = 0
             
-            share['profitloss'] = (share['quantity'] * (share['sellprice'] - share['buyprice']) * 0.01) - share['stampduty'] - share['buytradecost'] - share['selltradecost'] + share['dividends']
+            share['profitloss'] = share['value'] - share['buycost']
             share['percentage'] = ((10000 * (share['value'] - share['stampduty'] - share['buytradecost'] - share['selltradecost'] + share['dividends']) / (share['buyprice'] * share['quantity'])) - 100)
+            print(share['profitloss'])
             
             # If input validated, try to write to database
             if inputValidation:
@@ -199,43 +236,40 @@ def shares():
         
                 # If entering a new entry
                 if submit == 'submit':
-                    try:
-                       goToIndex = cursor.execute('INSERT INTO shares (userid, portfolioid, epic, status, buydate, buyprice, quantity, stampduty, buytradecost, buycost, target, stoploss, selldate, sellprice, selltradecost, value, profitloss, percentage, comment) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', data)
-                       conn.commit()
-                    except:
-                        pass
-            
+                    goToIndex = cursor.execute('INSERT INTO shares (userid, portfolioid, epic, status, buydate, buyprice, quantity, stampduty, buytradecost, buycost, target, stoploss, selldate, sellprice, selltradecost, value, profitloss, percentage, comment) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', data)
+                    conn.commit()
+                    
                 # If updating an old entry
                 elif submit == 'update':
                     data.append(request.form.get('id'))
                     cursor.execute('UPDATE shares SET userid=%s, portfolioid=%s, epic=%s, status=%s, buydate=%s, buyprice=%s, quantity=%s, stampduty=%s, buytradecost=%s, buycost=%s, target=%s, stoploss=%s, selldate=%s, sellprice=%s, selltradecost=%s, value=%s, profitloss=%s, percentage=%s, comment=%s WHERE id=%s', data)
                     conn.commit()
+                
+                updateAssets()
                     
                 # If entry succeeded, go to index else go back to edit page
                 if goToIndex == 1:
                     return redirect(url_for('index'))
-    
-    elif request.method == 'GET':
-          
-        # Get submit and id variables
-        submit = request.args.get('submit')
-        id = request.args.get('id')
-        
-        # Verify submit/id and get share data from database if updating
-        if submit != 'submit':
-            submit = 'update'
-            try:
-                id = int(id)
-            except TypeError:
-                id = None
-            if id:
-                cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s AND portfolioid=%s', [session['user_id'], id, session['portfolio']])
-            else:
-                cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s ORDER BY id DESC LIMIT 1', [session['user_id'], session['portfolio']])
+                    
+    # Verify submit/id and get share data from database if updating
+    if request.args.get('submit') != 'submit':
+        submit = 'update'
+        try:
+            id = int(request.args.get('id'))
+        except TypeError:
+            id = None
+        if id:
+            cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND id=%s AND portfolioid=%s', [session['user_id'], id, session['portfolio']])
+        else:
+            cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s ORDER BY id DESC LIMIT 1', [session['user_id'], session['portfolio']])
+        if cursor.rowcount == 1:
             share = cursor.fetchone()
             id = share['id']
-            if cursor.rowcount == 0:
-                submit = 'submit'
+        else:
+            submit = 'submit'
+    else:
+        submit = 'submit'
+        id = None
     
     # Create 'nav' dictionary to store navigation variables
     # numEntries, previd, nextid, lastid
@@ -243,19 +277,19 @@ def shares():
     cursor.execute('SELECT id FROM shares WHERE userid=%s AND portfolioid=%s ORDER BY id ASC', [session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     nav['numEntries'] = cursor.rowcount
-    nav['lastid'] = data[-1]['id']
+    nav['lastid'] = 0 if nav['numEntries'] == 0 else data[-1]['id']
+    
     
     # Set some default values
     if submit == 'submit':
-        id = None
-        if request.method == 'GET':
+        if request.method == 'GET' or request.form.get('submit') == "delete":
             share = {
                 'buydate': str(datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'))
             }   
         share['daysHeld'] = None
         dividends = []
             
-    elif submit == 'update':
+    if submit == 'update':
         nav['index'] = data.index({'id': id}) + 1
         nav['previd'] = None if nav['index'] == 1 else data[nav['index'] - 2]['id']
         nav['nextid'] = None if nav['index'] == nav['numEntries'] else data[nav['index']]['id']
@@ -272,10 +306,7 @@ def shares():
     
     return render_template('shares.html', nav=nav, share=share, submit=submit, portfolios=getPortfolio()[0], dividends=dividends)
 
-
-
-# Route for Statement Page
-# Shows cash statement
+# Route for Cash Statement/Entry Page
 @app.route('/statement', methods=['GET', 'POST'])
 @login_required
 def statement():
@@ -333,13 +364,7 @@ def statement():
                 conn.commit()
 
             # Update user's cash
-            cursor.execute('SELECT SUM(buycost) AS debit FROM shares WHERE userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
-            debitdata = cursor.fetchone()
-            cursor.execute('SELECT SUM(value) AS credit FROM shares WHERE userid=%s AND portfolioid=%s and status=0', [session['user_id'], session['portfolio']])
-            creditdata = cursor.fetchone()
-            cursor.execute('SELECT SUM(amount) AS cash FROM cash WHERE userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
-            cashdata = cursor.fetchone()
-            cash = creditdata['credit'] - debitdata['debit'] + cashdata['cash']
+            cash = getAssets()['cash']
             cursor.execute('UPDATE portfolios SET cash=%s WHERE userid=%s AND id=%s', [cash, session['user_id'], session['portfolio']])
             conn.commit()
                 
@@ -422,7 +447,6 @@ def statement():
     return render_template('statement.html', prefill=prefill, cash_categories=cash_categories, statement=statement, portfolios=getPortfolio()[0], date=date)
 
 # Route for Log Page
-# Shows end of day log
 @app.route('/log', methods=['GET', 'POST'])
 @login_required
 def log():
@@ -434,178 +458,266 @@ def log():
     cursor.execute('SELECT ftse100 FROM portfolios WHERE userid=%s AND id=%s', [session['user_id'], session['portfolio']])
     ftse100base = cursor.fetchone()['ftse100']
     
+    # Calculate percentages
+    for i in range(len(log)):
+        log[i]['ftse100percent'] = (100 * (log[i]['ftse100'] / ftse100base)) - 100
+        log[i]['profitloss'] = log[i]['exposure'] + log[i]['cash'] - log[i]['capital']
+        if log[i]['capital'] == 0:
+            log[i]['percentage'] = 0
+        else:
+            log[i]['percentage'] = (100 * ((log[i]['exposure'] + log[i]['cash']) / log[i]['capital'])) - 100
+    
     # Recalculate all rows capital/cash in logging to fix errors
     if request.method == 'POST' and request.form.get('submit') == 'Recalculate':
         for i in range(len(log)):
             date = '{} 23:59:59'.format(log[i]['date'].strftime('%Y-%m-%d'))
-            cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-            capital = float(cursor.fetchone()['capital'])
-            cursor.execute('SELECT SUM(amount) AS csh FROM cash WHERE date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-            cash = float(cursor.fetchone()['csh'])
-            cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-            buys = float(cursor.fetchone()['buys'])
-            cursor.execute('SELECT SUM(value) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-            sells = float(cursor.fetchone()['sells'])
-            cursor.execute('UPDATE log SET capital=%s, cash=%s WHERE id=%s', [capital, cash - buys + sells, log[i]['id']])
+            assets = getAssets(date)
+            cursor.execute('UPDATE log SET capital=%s, cash=%s WHERE id=%s', [assets['capital'], assets['cash'], log[i]['id']])
             conn.commit()
     
     return render_template('log.html', log=log, portfolios=getPortfolio()[0], ftse100base=ftse100base)
 
-
+# Route for Chart Page
 @app.route('/charts', methods=['GET'])
 @login_required
 def charts():
+    # Set default values for start and end date
     today = datetime.datetime.now()
-    startdate = (today + datetime.timedelta(days=-365)).strftime("%Y-%m-%d")
-    enddate = today.strftime("%Y-%m-%d")
+    dates = {
+        'start': (today + datetime.timedelta(days=-365)).strftime("%Y-%m-%d"),
+        'end': today.strftime("%Y-%m-%d")
+    }
     
+    # If default button was not pressed, check for input and verify
     if request.args.get('default') != 'Default':
         if request.args.get('startdate'):
-            try:
-                startdate = datetime.datetime.strptime(str(request.args.get('startdate')), "%Y-%m-%d").strftime("%Y-%m-%d")
-            except:
-                pass
+            date = verifyDate(request.args.get('startdate'))
+            if date:
+                dates['start'] = date
     
         if request.args.get('enddate'):
-            try:
-                enddate = datetime.datetime.strptime(str(request.args.get('enddate')), "%Y-%m-%d").strftime("%Y-%m-%d")
-            except:
-                pass
+            date = verifyDate(request.args.get('enddate'))
+            if date:
+                dates['end'] = date
     
+    # Get info from portfolios db
     cursor.execute('SELECT name, ftse100 FROM portfolios WHERE userid=%s AND id=%s', [session['user_id'], session['portfolio']])
     data = cursor.fetchone()
     oldftse100 = data['ftse100']
     portfolioname = data['name']
-    cursor.execute('SELECT * FROM log WHERE date>=%s AND date<=%s AND userid=%s AND portfolioid=%s ORDER BY date ASC', [startdate, enddate, session['user_id'], session['portfolio']])
+    
+    # Get charting data from log db
+    cursor.execute('SELECT * FROM log WHERE date>=%s AND date<=%s AND userid=%s AND portfolioid=%s ORDER BY date ASC',
+        [dates['start'], '{} 23:59:59'.format(dates['end']), session['user_id'], session['portfolio']])
     data = cursor.fetchall()
     
-    x_ticks = []
-    x_major_ticks = []
-    interval = len(data) // 10
+    # Prepare data
+    x_all = []
+    x_axis = []
+    interval = len(data) // 10 if len(data) > 10 else 1
     portfoliodata = []
     ftse100 = []
     difference = []
     maxvalue = 0
     minvalue = 0
     for i in range(len(data)):
-        x_ticks.append({
+    
+        # Add dates to x_axis list
+        x = {
             'value': i,
             'label': data[i]['date'].strftime("%Y-%m-%d")
-        })
-        if i % interval == 0:
-            x_major_ticks.append({
-                'value': i,
-                'label': data[i]['date'].strftime("%Y-%m-%d")
-            })
-        percentage = (100 * ((data[i]['exposure'] + data[i]['cash']) / data[i]['capital'])) - 100
+        }
+        x_all.append(x)
+        if i % interval == 0: x_axis.append(x)
+        
+        # Calculate percentages
+        if data[i]['capital'] != 0:
+            percentage = (100 * ((data[i]['exposure'] + data[i]['cash']) / data[i]['capital'])) - 100
+        else:
+            percentage = 0    
         ftse100percentage = (100 * ((data[i]['ftse100']) / oldftse100)) - 100
         differencepercentage = percentage - ftse100percentage
+        
+        # Add percentages to lists
+        portfoliodata.append((i, percentage))
+        ftse100.append((i, ftse100percentage))
+        difference.append((i, differencepercentage))
+        
+        # Get max and min y-axis values
         if percentage > maxvalue:
             maxvalue = percentage
         elif percentage < minvalue:
             minvalue = percentage
-        portfoliodata.append((i, percentage))
-        ftse100.append((i, ftse100percentage))
-        difference.append((i, differencepercentage))
     
+    # Prepare chart
     chart_style = Style(
         colors=('red', 'blue', 'lightgreen'),
         transition='200ms ease-in',
         font_family="Arial")
     
-    chart = pygal.XY(height=400, fill=True, style=chart_style, x_label_rotation=60, range=(minvalue-10,maxvalue+5), dots_size=1)
-    chart.x_labels = x_major_ticks
+    chart_config = Config(
+        height=400,
+        fill=True,
+        style=chart_style,
+        x_label_rotation=60,
+        range=(minvalue-10,maxvalue+5),
+        dots_size=1
+    )
+    
+    # Initialise chart
+    chart = pygal.XY(chart_config)
+    chart.x_labels = x_axis
     chart.add(portfolioname, portfoliodata)
     chart.add('FTSE100', ftse100)
-    #chart.add('Difference', difference)
+    chart.add('Difference', difference)
+    
+    # Format hover display
     chart.value_formatter = lambda y: '{:+.2f}%'.format(y)
-    chart.x_value_formatter = lambda x: x_ticks[x]['label']
+    if len(x_all) > 0:
+        chart.x_value_formatter = lambda x: x_all[x]['label']
     chart_data = chart.render_data_uri()
     
-    return render_template('charts.html', portfolios=getPortfolio()[0], chart_data=chart_data, startdate=startdate, enddate=enddate)
+    return render_template('charts.html', portfolios=getPortfolio()[0], chart_data=chart_data, dates=dates)
 
-
-
-
-
+# Route for User Control Panel
 @app.route('/controlpanel', methods=['GET', 'POST'])
 @login_required
 def controlpanel():
+    
+    # If form submitted...
     if request.method == 'POST':
+    
+        # Delete Portfolio
         if request.form.get('submit') == 'Delete':
             cursor.execute('DELETE FROM portfolios WHERE id=%s AND userid=%s', [request.form.get('id'), session['user_id']])
             conn.commit()
         
+        # Switch Portfolio
+        elif request.form.get('submit') == 'Switch':
+            newportfolio = request.form.get('id')
+            cursor.execute('UPDATE users SET lastportfolioid=%s WHERE id=%s', [newportfolio, session['user_id']])
+            conn.commit()
+            session['portfolio'] = int(newportfolio)
+        
+        # Add Portfolio
         elif request.form.get('submit') == 'Add':
             valid = True
+            # Validate name
             if not request.form.get('addportfolioname'):
                 valid = False
             else:
-                for i in portfolio:
+                # Check name is not duplicate
+                portfolios = getPortfolio()[0]
+                for i in portfolios:
                     if i['name'].lower() == request.form.get('addportfolioname').lower():
                         valid = False
                         break
             if valid:
+                # Update database
                 quoteLogin()
                 ftse100 = quote('UKX', 'price')
                 cursor.execute('INSERT INTO portfolios (userid, name, ftse100) VALUES (%s, %s, %s)', [session['user_id'], request.form.get('addportfolioname'), ftse100])
                 conn.commit()
         
+        # Rename Portfolio
         elif request.form.get('submit') == 'Rename':
             valid = True
+            # Validate name
             if not request.form.get('rename'):
                 valid = False
             else:
-                for i in portfolio[0]:
+                # Check name is not duplicate
+                portfolios = getPortfolio()[0]
+                for i in portfolios:
                     if i['name'].lower() == request.form.get('rename').lower():
                         valid = False
                         break
             if valid:
+                # Update database
                 cursor.execute('UPDATE portfolios SET name=%s WHERE userid=%s AND id=%s', [request.form.get('rename'), session['user_id'], request.form.get('id')])
                 conn.commit()
-            
-            portfolio = getPortfolio()
         
+        # Change Username
         elif request.form.get('submit') == 'Change Username':
-            if request.form.get('changeusername_old') and request.form.get('changeusername_new') and request.form.get('changeusername_password'):
+            # Validate input
+            valid = False
+            if not request.form.get('changeusername_old'):
+                flash('You must enter your current username!', 'danger')
+                
+            elif request.form.get('changeusername_old') != session['username']:
+                flash('You got your username wrong!', 'danger')
+                
+            elif not request.form.get('changeusername_new'):
+                flash('You must enter a new username!', 'danger')
+                
+            elif not request.form.get('changeusername_password'):
+                flash('You must enter your password!', 'danger')
+            
+            else:
+                valid = True
+                
+            if valid:
+                # Check password
                 cursor.execute('SELECT * FROM users WHERE id=%s AND username=%s', [session['user_id'], request.form.get('changeusername_old')])
-                data = cursor.fetchone()
-                if pwd_context.verify(request.form.get('changeusername_password'), data['password']):
+                if pwd_context.verify(request.form.get('changeusername_password'), cursor.fetchone()['password']):
                     try:
                         cursor.execute('UPDATE users SET username=%s WHERE id=%s', [request.form.get('changeusername_new'), session['user_id']])
                         conn.commit()
+                        flash('Username changed!', 'success')
                     except:
-                        flash('Username change failed', 'danger')
+                        flash('Username already in use', 'danger')
                 else:
-                    flash('Wrong password', 'danger')
+                    flash('Wrong password!', 'danger')
         
+        # Change Password
         elif request.form.get('submit') == 'Change Password':
-            if request.form.get('changepassword_username') and request.form.get('changepassword_old') and request.form.get('changepassword_new') \
-                and request.form.get('changepassword_confirm') and request.form.get('changepassword_new') == request.form.get('changepassword_confirm'):
+            # Validate input
+            valid = False
+            if not request.form.get('changepassword_username'):
+                flash('You must enter your username!', 'danger')
+            
+            elif request.form.get('changepassword_username') != session['username']:
+                flash('You got your username wrong!', 'danger')
+            
+            elif not request.form.get('changepassword_old'):
+                flash('You must enter your old password!', 'danger')
+            
+            elif not request.form.get('changepassword_new'):
+                flash('You must enter a new password!', 'danger')
+                
+            elif not request.form.get('changepassword_confirm'):
+                flash('You must confirm your new password!', 'danger')
+                
+            elif request.form.get('changepassword_new') != request.form.get('changepassword_confirm'):
+                flash('Your new password does not match the confirmation!', 'danger')
+            
+            else:
+                valid = True
+                
+            if valid:
+                # Check password
                 cursor.execute('SELECT * FROM users WHERE id=%s AND username=%s', [session['user_id'], request.form.get('changepassword_username')])
-                data = cursor.fetchone()
-                if pwd_context.verify(request.form.get('changepassword_old'), data['password']):
+                if pwd_context.verify(request.form.get('changepassword_old'), cursor.fetchone()['password']):
                     try:
                         cursor.execute('UPDATE users SET password=%s WHERE id=%s', [pwd_context.encrypt(request.form.get('changepassword_new')), session['user_id']])
                         conn.commit()
                         flash('Password changed!', 'success')
+                        if session['rememberme'] == 1:
+                            session['password'] = request.form.get('changepassword_new')
                     except:
                         flash('Password change failed', 'danger')
                 else:
-                    flash('Wrong password', 'danger')
-            
+                    flash('You got your old password wrong!', 'danger')
+        
+    # Set correct panel open
+    panel = int(request.form.get('panel')) if request.form.get('panel') else 1
     
-    cursor.execute('SELECT username FROM users WHERE id=%s', [session['user_id']])
-    username = cursor.fetchone()['username']
-    
-    return render_template('controlpanel.html', username=username, portfolios=getPortfolio()[0])
+    return render_template('controlpanel.html', portfolios=getPortfolio()[0], panel=panel)
 
-
-
-
-
-@app.route('/updatesharedata')
+# Route to update share prices and return values as JSON for insertion by JS
+@app.route('/updateshareprices', methods=['GET', 'POST'])
 def updatesharedata():
+    # Get all active share data
     cursor.execute('SELECT id, epic, buyprice, quantity, stampduty, buytradecost, selltradecost, value, dividends, profitloss, percentage FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     sharedata = cursor.fetchall()
     
@@ -614,24 +726,27 @@ def updatesharedata():
     exposure = 0
     salevaluedelta = 0
     for i in range(cursor.rowcount):
+        # Get new sell price
         sharedata[i]['sellprice'] = quote(sharedata[i]['epic'])
-        sharedata[i]['value'] = (sharedata[i]['sellprice'] * sharedata[i]['quantity'] * 0.01)
-        exposure += sharedata[i]['value']
-        
-        costs = sharedata[i]['buytradecost'] + sharedata[i]['selltradecost'] + sharedata[i]['stampduty']
-        salevaluedelta -= sharedata[i]['selltradecost']
-        sharedata[i]['profitloss'] = sharedata[i]['value'] - (sharedata[i]['buyprice'] * sharedata[i]['quantity'] * 0.01) - costs + sharedata[i]['dividends']
-        sharedata[i]['percentage'] = ((10000 * (sharedata[i]['value'] - costs + sharedata[i]['dividends']) / (sharedata[i]['buyprice'] * sharedata[i]['quantity'])) - 100)
         if sharedata[i]['sellprice'] == False:
             return ''
         
-        # Add new values to db
+        # Calculate value, profitloss, percentage
+        sharedata[i]['value'] = (sharedata[i]['sellprice'] * sharedata[i]['quantity'] * 0.01)
+        costs = sharedata[i]['buytradecost'] + sharedata[i]['selltradecost'] + sharedata[i]['stampduty']
+        sharedata[i]['profitloss'] = sharedata[i]['value'] - (sharedata[i]['buyprice'] * sharedata[i]['quantity'] * 0.01) - costs + sharedata[i]['dividends']
+        sharedata[i]['percentage'] = ((10000 * (sharedata[i]['value'] - costs + sharedata[i]['dividends']) / (sharedata[i]['buyprice'] * sharedata[i]['quantity'])) - 100)
+        
+        # Add values to calculate totals
+        exposure += sharedata[i]['value']
+        salevaluedelta -= sharedata[i]['selltradecost']
+        
+        # Update db with new values
         cursor.execute('UPDATE shares SET sellprice=%s, value=%s, profitloss=%s, percentage=%s WHERE userid=%s AND id=%s AND portfolioid=%s',
             [sharedata[i]['sellprice'], sharedata[i]['value'], sharedata[i]['profitloss'], sharedata[i]['percentage'], session['user_id'], sharedata[i]['id'], session['portfolio']])
         conn.commit()
     
     # Update exposure and lastupdated in portfolios db
-    date = datetime.datetime.now()
     cursor.execute('UPDATE portfolios SET exposure=%s, lastupdated=NOW() WHERE userid=%s AND id=%s', [exposure, session['user_id'], session['portfolio']])
     conn.commit()
     
@@ -641,41 +756,42 @@ def updatesharedata():
     ftse100 = quote('UKX', 'price')
 
     # Calculate capital/cash
-    cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-    capital = float(cursor.fetchone()['capital'])
-    cursor.execute('SELECT SUM(amount) AS csh FROM cash WHERE date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-    cash = float(cursor.fetchone()['csh'])
-    cursor.execute('SELECT SUM(buycost) AS buys FROM shares WHERE buydate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-    cash -= float(cursor.fetchone()['buys'])
-    cursor.execute('SELECT SUM(value) AS sells FROM shares WHERE selldate<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
-    cash += float(cursor.fetchone()['sells'])
+    assets = getAssets()
     
-    if lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d") or lastlog['exposure'] != exposure or lastlog['ftse100'] != ftse100:
-        if lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d"):
-            cursor.execute('UPDATE log SET exposure=%s, capital=%s, cash=%s, ftse100=%s WHERE id=%s', [exposure, capital, cash, ftse100, lastlog['id']])
+    # Log values
+    date = datetime.datetime.now()
+    if not lastlog or lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d") or lastlog['exposure'] != exposure or lastlog['ftse100'] != ftse100:
+        if lastlog and lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d"):
+            cursor.execute('UPDATE log SET exposure=%s, capital=%s, cash=%s, ftse100=%s WHERE id=%s', [exposure, assets['capital'], assets['cash'], ftse100, lastlog['id']])
         else:
-            cursor.execute('INSERT INTO log (userid, portfolioid, exposure, capital, cash, ftse100) VALUES (%s, %s, %s, %s, %s, %s)', [session['user_id'], session['portfolio'], exposure, capital, cash, ftse100])
+            cursor.execute('INSERT INTO log (userid, portfolioid, exposure, capital, cash, ftse100) VALUES (%s, %s, %s, %s, %s, %s)', [session['user_id'], session['portfolio'], exposure, assets['capital'], assets['cash'], ftse100])
         cursor.execute('UPDATE portfolios SET lastlog=NOW() WHERE userid=%s AND id=%s', [session['user_id'], session['portfolio']])
         conn.commit()
     
-    # Calculate master details
+    # Get log from 2 entries ago and todays buys to calculate daily performance
     cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 2', [session['user_id'], session['portfolio']])
-    daily = cursor.fetchall()[1]
+    lastexposure = cursor.fetchall()[1]['exposure'] if cursor.rowcount == 2 else 0
+    cursor.execute('SELECT SUM(x) AS money FROM (SELECT SUM(buycost) x FROM shares WHERE buydate>=CURDATE() AND buydate<=NOW() AND userid=%s AND portfolioid=%s UNION SELECT SUM(value) * -1 x FROM shares WHERE selldate>=CURDATE() AND selldate<=NOW() AND status=0 AND userid=%s AND portfolioid=%s) s',
+        [session['user_id'], session['portfolio'], session['user_id'], session['portfolio']])
+    todaysbuys = cursor.fetchone()['money']
+    todaysbuys = todaysbuys if todaysbuys else 0
+    
+    # Calculate master details
     details = {
         'exposure': exposure,
         'salevalue': exposure + salevaluedelta,
-        'profitloss': exposure + salevaluedelta + cash - capital,
-        'percentage': (100 * ((exposure + salevaluedelta + cash) / capital)) - 100,
-        'dailyprofit': exposure - daily['exposure'],
-        'dailypercent': 100 * ((exposure - daily['exposure']) / exposure)
+        'profitloss': exposure + salevaluedelta + assets['cash'] - assets['capital'],
+        'percentage': 0,
+        'dailyprofit': exposure - lastexposure - todaysbuys,
+        'dailypercent': 0
     }
+    if assets['capital'] != 0: details['percentage'] = (100 * ((exposure + salevaluedelta + assets['cash']) / assets['capital'])) - 100
+    if exposure != 0: details['dailypercent'] = 100 * (details['dailyprofit'] / exposure)
+    
     return jsonify([sharedata, details])
 
-
-
-
-
 # Route to accept target/stop loss data back from index page to update database
+# Returns new value (or current value if invalid entry)
 @app.route('/updateindex', methods=['POST'])
 def updateindex():
     content = request.get_json()
@@ -688,34 +804,26 @@ def updateindex():
             cursor.execute('UPDATE shares SET stoploss=%s WHERE userid=%s AND portfolioid=%s AND id=%s', [value, session['user_id'], session['portfolio'], data[0]])
         conn.commit()
     except:
-        pass
-    return 'true'
+        cursor.execute('SELECT target, stoploss FROM shares WHERE userid=%s AND portfolioid=%s AND id=%s', [session['user_id'], session['portfolio'], data[0]])
+        value = cursor.fetchone()[(data[2])]
+    return str(value)
 
-
-
-
-
-@app.route('/getsharedata')
+# Route to get all company data for open shares from database and return JSON
+@app.route('/getepics')
 def getsharedata():
     cursor.execute('SELECT DISTINCT epic, company FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE status=1 AND userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
-    sharedata = cursor.fetchall()
-    return jsonify(sharedata)
+    return jsonify(cursor.fetchall())
 
-
-
-
-
-@app.route('/company')
+# Route to get company name from database and return JSON
+# Used for share page to dynamically update company name
+@app.route('/getcompanyname', methods=['GET', 'POST'])
 def company():
     cursor.execute('SELECT * FROM companies WHERE symbol=%s', [request.args.get('epic')])
     data = cursor.fetchall()
     return jsonify(data)
 
-
-
-
-
-@app.route('/portfoliochange', methods=['GET', 'POST'])
+# Route to change portfolio
+@app.route('/portfoliochange', methods=['POST'])
 def portfoliochange():
     newportfolio = int(request.get_json())
     cursor.execute('UPDATE users SET lastportfolioid=%s WHERE id=%s', [newportfolio, session['user_id']])
@@ -723,86 +831,115 @@ def portfoliochange():
     session['portfolio'] = newportfolio
     return 'true'
 
-
-
-
-
+# Route to register new user
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    if request.method == 'POST':
+        # Check for errors
+        valid = False
+        reg_username = ''
+        if not request.form.get('reg_username'):
+            flash('No username entered!', 'danger')
+            
+        elif not request.form.get('reg_password'):
+            flash('No password entered!', 'danger')
+            reg_username = request.form.get('reg_username')
+            
+        elif not request.form.get('reg_confirmpassword'):
+            flash('You must confirm your password!', 'danger')
+            reg_username = request.form.get('reg_username')
+            
+        elif request.form.get('reg_password') != request.form.get('reg_confirmpassword'):
+            flash('Passwords must match', 'danger')
+            reg_username = request.form.get('reg_username')
+            
+        else:
+            valid = True
+            
+            # Insert new user into database and new portfolio
+            try:
+                cursor.execute('INSERT INTO users (username, password) VALUES (%s, %s)',
+                    [request.form.get('reg_username'), pwd_context.encrypt(request.form.get('reg_password'))])
+            except:
+                flash('Username already taken, please choose another.', 'warning')
+                valid = False
         
-    # Check for errors
-    if not request.form.get('reg_username'):
-        return render_template('register.html', reg_username='')
-    elif not request.form.get('reg_password') or not request.form.get('reg_confirmpassword') or request.form.get('reg_password') != request.form.get('reg_confirmpassword'):
-        return render_template('register.html', reg_username=request.form.get('reg_username'))
+        if valid:
+            # Add default portfolio
+            id = cursor.lastrowid
+            quoteLogin()
+            ftse100 = quote('UKX', 'price')
+            cursor.execute('INSERT INTO portfolios (userid, name, ftse100) VALUES (%s, %s, %s)', [id, 'Main', ftse100])
+            lastportfolioid = cursor.lastrowid
+            cursor.execute('UPDATE users SET lastportfolioid=%s WHERE id=%s', [lastportfolioid, id])
+            conn.commit()
+
+            # Set user as logged in
+            session['user_id'] = id
+            session['username'] = request.form.get('reg_username')
+            session['portfolio'] = lastportfolioid
+            flash("Registered! Hello {}!".format('username'), 'success')
     
-    # Insert new user into database and new portfolio
-    try:
-        cursor.execute('INSERT INTO users (username, password) VALUES (%s, %s)',
-            [request.form.get('reg_username'), pwd_context.encrypt(request.form.get('reg_password'))])
-    except:
-        # Username already taken
-        flash('Username already taken', 'warning')
-        return render_template('register.html', reg_username='')
-    conn.commit()
-    
-    # Add default portfolio
-    id = cursor.lastrowid
-    quoteLogin()
-    ftse100 = quote('UKX', 'price')
-    cursor.execute('INSERT INTO portfolio (userid, name, ftse100) VALUES (%s, %s, %s)', [id, 'Main', ftse100])
-    lastportfolioid = cursor.lastrowid
-    cursor.execute('UPDATE users SET lastportfolioid=%s WHERE id=%s', [lastportfolioid, id])
-    conn.commit()
-    
-    # Set user as logged in
-    session['user_id'] = id
-    session['portfolio'] = lastportfolioid
-    flash("Registered! Hello {}!".format('username'), 'success')
-    
-    # Load index page
-    return redirect(url_for('index'))
+    if not valid:
+        return render_template('register.html', reg_username=reg_username)
+    else:
+        return redirect(url_for('index'))
 
-
-
-
-
+# Route to log user in
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    
-    # Check for errors
-    if not request.form.get('login_username') or not request.form.get('login_password'):
-        return render_template('login.html')
-    
-    # Check database for user
-    cursor.execute('SELECT * FROM users WHERE username=%s', [request.form.get('login_username')])
-    
-    if cursor.rowcount == 1:
-        data = cursor.fetchone()
-        if pwd_context.verify(request.form.get('login_password'), data['password']):
-            session['user_id'] = data['id']
-            session['username'] = request.form.get('login_username')
-            if request.form.get('login_remember') == 'on':
-                session['password'] = request.form.get('login_password')
-                session['rememberme'] = 1
-                session['portfolio'] = data['lastportfolioid']
+    if request.method == 'POST':
+        # Check for errors
+        valid = True
+        if not request.form.get('login_username'):
+            flash('No username entered!', 'danger')
+            valid = False
+        if not request.form.get('login_password'):
+            flash('No password entered!', 'danger')
+            valid = False
+        
+        if valid:
+            # Check database for user
+            cursor.execute('SELECT * FROM users WHERE username=%s', [request.form.get('login_username')])
+            
+            # If user in database
+            if cursor.rowcount == 1:
+                userdata = cursor.fetchone()
+                
+                # If password correct
+                if pwd_context.verify(request.form.get('login_password'), userdata['password']):
+                    
+                    # Log user in
+                    session['user_id'] = userdata['id']
+                    session['username'] = request.form.get('login_username')
+                    session['portfolio'] = userdata['lastportfolioid']
+                    if request.form.get('login_remember') == 'on':
+                        session['password'] = request.form.get('login_password')
+                        session['rememberme'] = 1
+                    else:
+                        session.pop('password', None)
+                        session.pop('rememberme', None)
+                    flash('Logged in. Welcome back {}!'.format(request.form.get('login_username')), 'success')
+                else:
+                    flash('Incorrect password!', 'danger')
+                    valid = False
             else:
-                session.pop('username', None)
-                session.pop('password', None)
-                session.pop('rememberme', None)
-                session.pop('portfolio', None)
-            flash('Logged in. Welcome back {}.'.format(request.form.get('login_username')), 'success')
+                flash('Incorrect username!', 'danger')
+                valid = False
+    else:
+        valid = False
     
     # Load index page
-    return redirect(url_for('index'))
+    if valid:
+        return redirect(url_for('index'))
+    else:
+        return render_template('login.html')
 
-
-
-
-
+# Route to logout
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
     session.pop('user_id', None)
+    session.pop('username', None)
     session.pop('portfolio', None)
-    flash('Logged out', 'success')
+    flash('Logged out!', 'success')
     return redirect(url_for('login'))

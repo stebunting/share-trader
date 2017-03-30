@@ -18,7 +18,7 @@
             <div class="form-group">
                 <label for="cash_category" class="col-sm-2 control-label">Type</label>
                 <div class="col-sm-10">
-                    <select class="form-control" name="cash_category" id="cash_category">
+                    <select class="form-control" name="cash_category" id="cash_category"{% if prefill['epic'] %} data-epic="{{ prefill['epic'] }}"{% endif %}>
                         {% for category in cash_categories %}<option value="{{ category['id'] }}"{% if prefill['type'] and prefill['type']|int == category['id'] %} selected="selected"{% endif %}>{{ category['category'] }}</option>
                         {% endfor %}
                     </select>
