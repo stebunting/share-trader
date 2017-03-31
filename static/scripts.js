@@ -69,32 +69,24 @@ function updateRow(company) {
 
 // Update details (exposure, profit/loss etc.)
 function updateTotals(company) {
-    $('#exposure').text(gbp(company['exposure']))
-    $('#salevalue').text(gbp(company['salevalue']))
-    $('#profitloss').text(gbp(company['profitloss']))
-    $('#percentage').text(percent(company['percentage']))
+    $('#exposure').text(gbp(company['exposure']));
+    $('#salevalue').text(gbp(company['salevalue']));
+    $('#profitloss').text(gbp(company['profitloss']));
+    $('#percentage').text(percent(company['percentage']));
     
     if (company['dailyprofit'] > 0) {
         if ($('#dailyprofit').hasClass('loss')) {
-            $('#dailyprofit').removeClass('loss').addClass('profit');
-        }
+            $('#dailyprofit').addClass('profit').removeClass('loss');
+            $('#dailypercent').addClass('profit').removeClass('loss');
+        };
     } else {
         if ($('#dailyprofit').hasClass('success')) {
-            $('#dailyprofit').removeClass('success').addClass('loss');
-        }
+            $('#dailyprofit').addClass('loss').removeClass('success');
+            $('#dailyprofit').addClass('loss').removeClass('success');
+        };
     }
-    $('#dailyprofit').text(gbp(company['dailyprofit']))
-    
-    if (company['dailypercent'] > 0) {
-        if ($('#dailypercent').hasClass('loss')) {
-            $('#dailypercent').removeClass('loss').addClass('profit');
-        }
-    } else {
-        if ($('#dailyprofit').hasClass('success')) {
-            $('#dailyprofit').removeClass('success').addClass('loss');
-        }
-    }
-    $('#dailypercent').text(percent(company['dailypercent']))
+    $('#dailyprofit').text(gbp(company['dailyprofit']));
+    $('#dailypercent').text(percent(company['dailypercent']));
 }
 
 // Refresh onscreen data
@@ -145,9 +137,11 @@ function divPicker(epic) {
                 $options += '>' + val['epic'] + ' (' + val['company'] + ')</option>';
             });
         }).done(function() {
-            $start = '<div class="form-group" id="extraselect"><div class="col-sm-10 col-sm-push-2"><select class="form-control" name="sharedividend" id="sharedividend">';
-            $end = '</select></div></div>';
-            $thing = $('#cashform > div:nth-child(2)').after($start + $options + $end);
+            if ($options != '') {
+                $start = '<div class="form-group" id="extraselect"><div class="col-sm-9 col-sm-push-3"><select class="form-control" name="sharedividend" id="sharedividend">';
+                $end = '</select></div></div>';
+                $thing = $('#cashmodal > div:nth-child(3)').after($start + $options + $end);
+            }
         });
     } else {
         if ($('#extraselect')) {
@@ -168,12 +162,16 @@ $(function() {
             dataType: 'json',
             async: false,
             success: function(msg) {
-                if (msg == 'true') {
+                if (msg == true) {
                     location.reload();
                 }
             }
         });
     });
+    
+    // Fade out alert flashing
+    setTimeout(function(){
+        $('#flash').fadeOut(1000); }, 3000);
     
     // Index Page
     // Sends updated data for storing when target/stop loss edited directly from table
@@ -308,7 +306,12 @@ $(function() {
     // Statement Page
     $('#cash_category').on('change', divPicker);
     if ($('#cash_category').val() == 2) {
+        $('#newCash').modal('show');
         divPicker($('#cash_category').attr('data-epic'));
+    }
+    console.log();
+    if ($('#alertmsg').text() != '') {
+        $('#newCash').modal('show');
     }
     
     // Charts Page

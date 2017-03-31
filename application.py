@@ -5,7 +5,6 @@ import datetime
 import json
 
 from flask import Flask, render_template, request, jsonify, flash, redirect, session, url_for
-from flask_session import Session
 from flaskext.mysql import MySQL
 from pymysql.cursors import DictCursor
 
@@ -27,7 +26,6 @@ app.config['MYSQL_DATABASE_PASSWORD'] = 'st54'
 app.secret_key = '%\xd1/\xc3\xdb2\xc1\x92#\xd5\xab\xfaq\x94\xd2\xdc\x81\x7f\xb6\xd2(i\x81f'
 app.config['SESSION_TYPE'] = 'filesystem'
 mysql = MySQL(app, cursorclass=DictCursor)
-Session(app)
 
 # Custom filters
 app.jinja_env.filters['gbp'] = gbp
@@ -310,6 +308,8 @@ def shares():
 @app.route('/statement', methods=['GET', 'POST'])
 @login_required
 def statement():
+    msg = []
+    
     # If new cash transaction posted
     if request.method == 'POST':
         
@@ -323,18 +323,18 @@ def statement():
         }
         # Check submitted amount is a number
         if not request.form.get('cash_amount'):
-            flash('No amount entered', 'danger')
+            msg.append('No amount entered')
             valid = False
         else:
             try:
                 cash_amount = float(request.form.get('cash_amount'))
             except ValueError:
-                flash('Amount should be a number', 'danger')
+                msg.append('Amount should be a number')
                 valid = False
         
         # Check date
         if not verifyDate(request.form.get('cash_date')):
-            flash('Invalid date', 'danger')
+            msg.append('Invalid date')
             valid = False
         
         if valid:
@@ -379,6 +379,9 @@ def statement():
                 # Update log if not a capital investment
                 cursor.execute('UPDATE log SET cash=cash+%s WHERE date>=%s AND userid=%s AND portfolioid=%s', [cash_amount, request.form.get('cash_date'), session['user_id'], session['portfolio']])
                 conn.commit()
+            
+            prefill = None
+            cash_category = None
     
     elif request.method == 'GET':
         prefill = None
@@ -444,7 +447,7 @@ def statement():
         balance = row['balance']
     
     date = datetime.datetime.now().strftime("%Y-%m-%d")
-    return render_template('statement.html', prefill=prefill, cash_categories=cash_categories, statement=statement, portfolios=getPortfolio()[0], date=date)
+    return render_template('statement.html', prefill=prefill, cash_categories=cash_categories, statement=statement, portfolios=getPortfolio()[0], date=date, msg=msg)
 
 # Route for Log Page
 @app.route('/log', methods=['GET', 'POST'])

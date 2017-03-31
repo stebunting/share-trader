@@ -79,3 +79,8 @@ tfoot > tr > td {
     font-size: 3em;
     text-align: center;
 }
+
+#alertmsg > li {
+    color: #F00;
+    list-style-type: none;
+}

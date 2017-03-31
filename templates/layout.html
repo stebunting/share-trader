@@ -139,17 +139,14 @@
 		</div>
 	</nav>
 	<div class="container">
+	    <div id="flash">
 	{% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         {% for category, message in messages %}<div class="alert alert-{{ category }} text-center" role="alert">
             {{ message }}
         </div>{% endfor %}
   {% endif %}{% endwith %}
-
-{#
-    {% if get_flashed_messages() %}<header>
-            <div class="alert alert-info text-center" role="alert">{{ get_flashed_messages() | join(' ') }}</div>
-        </header>{% endif %}#}
+        </div>
 {% block body %}{% endblock %}
     </div>
 </body>
