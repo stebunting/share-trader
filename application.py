@@ -17,13 +17,14 @@ from pygal.style import Style
 
 # Helper functions
 from functions import *
+from settings import *
 
 app = Flask(__name__)
-app.config['MYSQL_DATABASE_HOST'] = 'localhost'
-app.config['MYSQL_DATABASE_DB'] = 'sharetrader'
-app.config['MYSQL_DATABASE_USER'] = 'sharetrader'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'st54'
-app.secret_key = '%\xd1/\xc3\xdb2\xc1\x92#\xd5\xab\xfaq\x94\xd2\xdc\x81\x7f\xb6\xd2(i\x81f'
+app.config['MYSQL_DATABASE_HOST'] = mysqlhost
+app.config['MYSQL_DATABASE_DB'] = mysqldb
+app.config['MYSQL_DATABASE_USER'] = mysqluser
+app.config['MYSQL_DATABASE_PASSWORD'] = mysqlpassword
+app.secret_key = secretkey
 app.config['SESSION_TYPE'] = 'filesystem'
 mysql = MySQL(app, cursorclass=DictCursor)
 
