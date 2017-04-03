@@ -25,7 +25,7 @@ try:
     from settings import *
 except:
     mysqlhost = os.environ['MYSQLHOST']
-    mysqldv = os.environ['MYSQLDB']
+    mysqldb = os.environ['MYSQLDB']
     mysqluser = os.environ['MYSQLUSER']
     mysqlpassword = os.environ['MYSQLPASSWORD']
     secretkey = os.environ['SECRETKEY']
