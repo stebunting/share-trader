@@ -721,8 +721,11 @@ def controlpanel():
 # Route to update share prices and return values as JSON for insertion by JS
 @app.route('/updateshareprices', methods=['GET', 'POST'])
 def updateshareprices():
+    user_id = session['user_id'] if session['user_id'] else 1
+    current_portfolio = session['portfolio'] if session['portfolio'] else 1
+    
     # Get all active share data
-    cursor.execute('SELECT id, epic, buyprice, quantity, stampduty, buytradecost, selltradecost, value, dividends, profitloss, percentage FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
+    cursor.execute('SELECT id, epic, buyprice, quantity, stampduty, buytradecost, selltradecost, value, dividends, profitloss, percentage FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [user_id, current_portfolio])
     sharedata = cursor.fetchall()
     
     # Calculate new row values based on new quote data
@@ -747,15 +750,15 @@ def updateshareprices():
         
         # Update db with new values
         cursor.execute('UPDATE shares SET sellprice=%s, value=%s, profitloss=%s, percentage=%s WHERE userid=%s AND id=%s AND portfolioid=%s',
-            [sharedata[i]['sellprice'], sharedata[i]['value'], sharedata[i]['profitloss'], sharedata[i]['percentage'], session['user_id'], sharedata[i]['id'], session['portfolio']])
+            [sharedata[i]['sellprice'], sharedata[i]['value'], sharedata[i]['profitloss'], sharedata[i]['percentage'], user_id, sharedata[i]['id'], current_portfolio])
         conn.commit()
     
     # Update exposure and lastupdated in portfolios db
-    cursor.execute('UPDATE portfolios SET exposure=%s, lastupdated=NOW() WHERE userid=%s AND id=%s', [exposure, session['user_id'], session['portfolio']])
+    cursor.execute('UPDATE portfolios SET exposure=%s, lastupdated=NOW() WHERE userid=%s AND id=%s', [exposure, user_id, current_portfolio])
     conn.commit()
     
     # Update log
-    cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 1', [session['user_id'], session['portfolio']])
+    cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 1', [user_id, current_portfolio])
     lastlog = cursor.fetchone()
     ftse100 = quote('UKX', 'price')
 
@@ -768,15 +771,15 @@ def updateshareprices():
         if lastlog and lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d"):
             cursor.execute('UPDATE log SET exposure=%s, capital=%s, cash=%s, ftse100=%s WHERE id=%s', [exposure, assets['capital'], assets['cash'], ftse100, lastlog['id']])
         else:
-            cursor.execute('INSERT INTO log (userid, portfolioid, exposure, capital, cash, ftse100) VALUES (%s, %s, %s, %s, %s, %s)', [session['user_id'], session['portfolio'], exposure, assets['capital'], assets['cash'], ftse100])
-        cursor.execute('UPDATE portfolios SET lastlog=NOW() WHERE userid=%s AND id=%s', [session['user_id'], session['portfolio']])
+            cursor.execute('INSERT INTO log (userid, portfolioid, exposure, capital, cash, ftse100) VALUES (%s, %s, %s, %s, %s, %s)', [user_id, current_portfolio, exposure, assets['capital'], assets['cash'], ftse100])
+        cursor.execute('UPDATE portfolios SET lastlog=NOW() WHERE userid=%s AND id=%s', [user_id, current_portfolio])
         conn.commit()
     
     # Get log from 2 entries ago and todays buys to calculate daily performance
-    cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 2', [session['user_id'], session['portfolio']])
+    cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 2', [user_id, current_portfolio])
     lastexposure = cursor.fetchall()[1]['exposure'] if cursor.rowcount == 2 else 0
     cursor.execute('SELECT SUM(x) AS money FROM (SELECT SUM(buycost) x FROM shares WHERE buydate>=CURDATE() AND buydate<=NOW() AND userid=%s AND portfolioid=%s UNION SELECT SUM(value) * -1 x FROM shares WHERE selldate>=CURDATE() AND selldate<=NOW() AND status=0 AND userid=%s AND portfolioid=%s) s',
-        [session['user_id'], session['portfolio'], session['user_id'], session['portfolio']])
+        [user_id, current_portfolio, user_id, current_portfolio])
     todaysbuys = cursor.fetchone()['money']
     todaysbuys = todaysbuys if todaysbuys else 0
     
