@@ -20,6 +20,7 @@ from functions import *
 from settings import *
 
 app = Flask(__name__)
+
 app.config['MYSQL_DATABASE_HOST'] = mysqlhost
 app.config['MYSQL_DATABASE_DB'] = mysqldb
 app.config['MYSQL_DATABASE_USER'] = mysqluser
@@ -37,7 +38,7 @@ app.jinja_env.filters['dateFormat'] = dateFormat
 # Connect to MySQL database
 conn = mysql.connect()
 cursor = conn.cursor()
-    
+
 # Function to get portfolio data, required for nav bar on every page
 # Returns array with index of current selected portfolio
 def getPortfolio():
@@ -74,7 +75,6 @@ def updateAssets():
 @app.route('/')
 @login_required
 def index():
-
     # Get portfolio details and set last updated text to readable format
     portfolios = getPortfolio()
     portfolio_index = portfolios[1]
