@@ -30,18 +30,30 @@ def quoteLogin():
     payload = {
         'login_username': 'sharetrader6',
         'login_password': 'st54st54',
-        'redirect_url': 'aHR0cDovL3VrLmFkdmZuLmNvbS9jb21tb24vYWNjb3VudC9sb2dpbg==',
         'site': 'uk'
     }
-    session_requests = requests.session()
-    result = session_requests.get('http://uk.advfn.com/common/account/login')
+    request_session = requests.session()
+    result = request_session.get('http://uk.advfn.com/common/account/login')
     tree = html.fromstring(result.text)
     payload['redirect_url'] = list(set(tree.xpath("//input[@name='redirect_url']/@value")))[0]
-    result = session_requests.post(
+    headers = {
+        'Referer': 'http://uk.advfn.com/common/account/login',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_4) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.1 Safari/603.1.30',
+        'Accept-Encoding': 'gzip, deflate',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-us'
+    }
+    result = request_session.post(
         'https://secure.advfn.com/login/secure', 
-        data = payload, 
-        headers = dict(referer='http://uk.advfn.com/common/account/login')
+        data=payload, 
+        headers=headers
     )
+    
+    # Return true if login successful else false
+    if not 200 <= result.status_code < 300:
+        return False
+    else:
+        return True
 
 def quote(epic, price='bid'):
     page = requests.get('http://uk.advfn.com/p.php?pid=financials&symbol=LSE:{}'.format(epic))

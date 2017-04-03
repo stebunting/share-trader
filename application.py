@@ -720,7 +720,7 @@ def controlpanel():
 
 # Route to update share prices and return values as JSON for insertion by JS
 @app.route('/updateshareprices', methods=['GET', 'POST'])
-def updatesharedata():
+def updateshareprices():
     # Get all active share data
     cursor.execute('SELECT id, epic, buyprice, quantity, stampduty, buytradecost, selltradecost, value, dividends, profitloss, percentage FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     sharedata = cursor.fetchall()
