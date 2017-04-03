@@ -31,6 +31,7 @@ except:
     secretkey = os.environ['SECRETKEY']
     gmailuser = os.environ['GMAILUSER']
     gmailpassword = os.environ['GMAILPASSWORD']
+    loc = os.environ['LOC']
 
 locale.setlocale(locale.LC_ALL, loc)
 
