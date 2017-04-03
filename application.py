@@ -776,7 +776,7 @@ def updateshareprices():
     date = datetime.datetime.now()
     if not lastlog or lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d") or lastlog['exposure'] != exposure or lastlog['ftse100'] != ftse100:
         if lastlog and lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d"):
-            cursor.execute('UPDATE log SET exposure=%s, capital=%s, cash=%s, ftse100=%s WHERE id=%s', [exposure, assets['capital'], assets['cash'], ftse100, lastlog['id']])
+            cursor.execute('UPDATE log SET date=NOW(), exposure=%s, capital=%s, cash=%s, ftse100=%s WHERE id=%s', [exposure, assets['capital'], assets['cash'], ftse100, lastlog['id']])
         else:
             cursor.execute('INSERT INTO log (userid, portfolioid, exposure, capital, cash, ftse100) VALUES (%s, %s, %s, %s, %s, %s)', [session['user_id'], session['portfolio'], exposure, assets['capital'], assets['cash'], ftse100])
         cursor.execute('UPDATE portfolios SET lastlog=NOW() WHERE userid=%s AND id=%s', [session['user_id'], session['portfolio']])
