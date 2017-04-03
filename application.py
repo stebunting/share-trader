@@ -24,13 +24,13 @@ from functions import *
 try:
     from settings import *
 except:
-    mysqlhost = os.environ.get('MYSQLHOST')
-    mysqldv = os.environ.get('MYSQLDB')
-    mysqluser = os.environ.get('MYSQLUSER')
-    mysqlpassword = os.environ.get('MYSQLPASSWORD')
-    secretkey = os.environ.get('SECRETKEY')
-    gmailuser = os.environ.get('GMAILUSER')
-    gmailpassword = os.environ.get('GMAILPASSWORD')
+    mysqlhost = os.environ['MYSQLHOST']
+    mysqldv = os.environ['MYSQLDB']
+    mysqluser = os.environ['MYSQLUSER']
+    mysqlpassword = os.environ['MYSQLPASSWORD']
+    secretkey = os.environ['SECRETKEY']
+    gmailuser = os.environ['GMAILUSER']
+    gmailpassword = os.environ['GMAILPASSWORD']
 
 locale.setlocale(locale.LC_ALL, loc)
 
