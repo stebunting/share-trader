@@ -3,8 +3,10 @@
 
 import datetime
 import json
+import smtplib
+from email.message import EmailMessage
 
-from flask import Flask, render_template, request, jsonify, flash, redirect, session, url_for
+from flask import Flask, render_template, request, jsonify, flash, redirect, session, url_for, make_response
 from flaskext.mysql import MySQL
 from pymysql.cursors import DictCursor
 
@@ -17,7 +19,19 @@ from pygal.style import Style
 
 # Helper functions
 from functions import *
-from settings import *
+
+try:
+    from settings import *
+except:
+    mysqlhost = ENV['MYSQLHOST']
+    mysqldv = ENV['MYSQLDB']
+    mysqluser = ENV['MYSQLUSER']
+    mysqlpassword = ENV['MYSQLPASSWORD']
+    secretkey = ENV['SECRETKEY']
+    gmailuser = ENV['GMAILUSER']
+    gmailpassword = ENV['GMAILPASSWORD']
+
+locale.setlocale(locale.LC_ALL, loc)
 
 app = Flask(__name__)
 
@@ -723,9 +737,25 @@ def controlpanel():
 def schedule():
     session['user_id'] = 1
     session['portfolio'] = 1
-    updateshareprices()
+    data = updateshareprices()
     session.pop('user_id', None)
     session.pop('portfolio', None)
+    
+    content = json.loads(data.get_data())
+    details = content[-1]
+    
+    msg = EmailMessage()
+    msg.set_content("Here's your update for today!\n\nMarket Exposure: {}\nProfit: {} {}\n\nDaily Proft: {} {}".format(gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent'])))
+    msg['From'] = 'stebunting@gmail.com'
+    msg['To'] = 'stebunting@gmail.com'
+    msg['Subject'] = 'Stock portfolio update for {}'.format(dateFormat(datetime.datetime.now()))
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.ehlo()
+    server.starttls()
+    server.ehlo()
+    server.login(gmailuser, gmailpassword)
+    server.send_message(msg)
+    server.close()
     return 'True'
 
 # Route to update share prices and return values as JSON for insertion by JS

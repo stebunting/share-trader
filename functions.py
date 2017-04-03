@@ -11,8 +11,6 @@ from lxml import html
 
 from functools import wraps
 
-locale.setlocale(locale.LC_ALL, 'en_GB.utf8')
-
 def gbp(value):
     #return "£{:,.2f}".format(value)
     return locale.currency(value, grouping=True)
