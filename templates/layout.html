@@ -16,20 +16,20 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 
-    <!-- Datepicker -->
+    <!-- Other plugins -->
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='jquery-ui-timepicker-addon.css') }}">
-    <script src="{{ url_for('static', filename='date.format.js') }}"></script>
-    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
-    <script src="{{ url_for('static', filename='validator.min.js') }}"></script>
     <script src="{{ url_for('static', filename='jquery-ui-timepicker-addon.js') }}"></script>
+    <script src="{{ url_for('static', filename='date.format.js') }}"></script>
+    
+    <!-- My scripts -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
     <title>Share Trader | {% block title %}{% endblock %}</title>
 </head>
 
 <body>
-	<nav class="navbar navbar-default" role="navigation">
+	<nav class="navbar navbar-default">
 		<div class="container">
 			<div class="navbar-header">
 				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse-1" aria-expanded="false">
@@ -41,9 +41,8 @@
                 <a class="navbar-brand" href="{{ url_for('index') }}">ShareTrader</a>
 			</div>
 			<div class="collapse navbar-collapse" id="navbar-collapse-1">
-				<ul class="nav navbar-nav">
-				    {% if session.user_id %}
-					<li><a href="{{ url_for('shares') }}?submit=update">Share Entry</a></li>
+				<ul class="nav navbar-nav">{% if session.user_id %}
+				    <li><a href="{{ url_for('shares') }}?submit=update">Share Entry</a></li>
 					<li><a href="{{ url_for('statement') }}">Cash Statement</a></li>
 					<li><a href="{{ url_for('log') }}">Log</a></li>
 					<li><a href="{{ url_for('charts') }}">Charts</a></li>
@@ -53,17 +52,14 @@
                             <li><a href="https://www.iwebsharedealing.co.uk/_mem_bin/Formslogin.asp" target="_blank">iWeb Share Dealing</a></li>
                             <li><a href="https://online.hl.co.uk/my-accounts/login-step-one" target="_blank">Hargreaves Lansdown</a></li>
                         </ul>
-                    </li>
-					{% endif %}
+                    </li>{% endif %}
 				</ul>   
-				<ul class="nav navbar-nav navbar-right">
-				    {% if session['user_id'] %}					
+				<ul class="nav navbar-nav navbar-right">{% if session['user_id'] %}					
 					<li role="presentation" class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Portfolios <span class="caret"></span></a>
                         <ul class="dropdown-menu">
                             {% for entry in portfolios %}<li{% if entry['id'] == session['portfolio'] %} class="disabled"{% endif %}><a class="portfoliochange" id="{{ entry['id'] }}" href="#">{{ entry['name'] }}</a></li>
-                            {% endfor %}
-                        </ul>
+                            {% endfor %}</ul>
                     </li>
                     <li role="presentation" class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">{{ session.username }} <span class="caret"></span></a>
@@ -72,29 +68,28 @@
                             <li role="separator" class="divider"></li>
                             <li><a href="{{ url_for('logout') }}">Logout</a></li>
                         </ul>
-                    </li>
-					{% else %}
+                    </li>{% else %}
 					<li role="presentation" class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Register <span class="caret"></span></a>
-                        <ul class="dropdown-menu">
-                            <div class="dropdown-form">
+                        <ul class="dropdown-menu dropdown-form">
+                            <li>
                                 <form class="form-horizontal" action="/register" method="post">
                                     <div class="form-group">
-                                        <label for="reg_username" class="col-md-3 control-label">Username</label>
+                                        <label for="reg_username_dropdown" class="col-md-3 control-label">Username</label>
                                         <div class="col-md-9">
-                                            <input type="text" class="form-control" id="reg_username" name="reg_username" placeholder="Username">
+                                            <input type="text" class="form-control" id="reg_username_dropdown" name="reg_username" placeholder="Username">
                                         </div>
                                     </div>
                                     <div class="form-group">
-                                        <label for="reg_password" class="col-md-3 control-label">Password</label>
+                                        <label for="reg_password_dropdown" class="col-md-3 control-label">Password</label>
                                         <div class="col-md-9">
-                                            <input type="password" class="form-control" id="reg_password" name="reg_password" placeholder="Password">
+                                            <input type="password" class="form-control" id="reg_password_dropdown" name="reg_password" placeholder="Password">
                                         </div>
                                     </div>
                                     <div class="form-group">
-                                        <label for="reg_confirmpassword" class="col-md-3 control-label">Confirm</label>
+                                        <label for="reg_confirmpassword_dropdown" class="col-md-3 control-label">Confirm</label>
                                         <div class="col-md-9">
-                                            <input type="password" class="form-control" id="reg_confirmpassword" name="reg_confirmpassword" placeholder="Confirm Password">
+                                            <input type="password" class="form-control" id="reg_confirmpassword_dropdown" name="reg_confirmpassword" placeholder="Confirm Password">
                                         </div>
                                     </div>
                                     <div class="form-group">
@@ -103,24 +98,24 @@
                                         </div>
                                     </div>
                                 </form>
-                            </div>
+                            </li>
                         </ul>
                     </li>
 					<li role="presentation" class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Login <span class="caret"></span></a>
-                        <ul class="dropdown-menu">
-                            <div class="dropdown-form">
+                        <ul class="dropdown-menu dropdown-form">
+                            <li>
                                 <form class="form-horizontal" action="/login" method="post">
                                     <div class="form-group">
-                                        <label for="login_username" class="col-md-3 control-label">Username</label>
+                                        <label for="login_username_dropdown" class="col-md-3 control-label">Username</label>
                                         <div class="col-md-9">
-                                            <input type="text" class="form-control" maxlength="30" id="login_username" name="login_username" placeholder="Username"{% if session.username %} value="{{ session.username }}"{% endif %}>
+                                            <input type="text" class="form-control" maxlength="30" id="login_username_dropdown" name="login_username" placeholder="Username"{% if session.username %} value="{{ session.username }}"{% endif %}>
                                         </div>
                                     </div>
                                     <div class="form-group">
-                                        <label for="login_password" class="col-md-3 control-label">Password</label>
+                                        <label for="login_password_dropdown" class="col-md-3 control-label">Password</label>
                                         <div class="col-md-9">
-                                            <input type="password" class="form-control" maxlength="30" id="login_password" name="login_password" placeholder="Password"{% if session.password %} value="{{ session.password }}"{% endif %}>
+                                            <input type="password" class="form-control" maxlength="30" id="login_password_dropdown" name="login_password" placeholder="Password"{% if session.password %} value="{{ session.password }}"{% endif %}>
                                         </div>
                                     </div>
                                     <div class="form-group">
@@ -136,24 +131,20 @@
                                         </div>
                                     </div>
                                 </form>
-                            </div>
+                            </li>
                         </ul>
-                    </li>
-                    {% endif %}
-				</ul>
+                    </li>{% endif %}
+                </ul>
 			</div>
 		</div>
 	</nav>
 	<div class="container">
-	    <div id="flash">
-	{% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}<div class="alert alert-{{ category }} text-center" role="alert">
-            {{ message }}
-        </div>{% endfor %}
-  {% endif %}{% endwith %}
+	    <div id="flash">{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}
+            {% for category, message in messages %}<div class="alert alert-{{ category }} text-center" role="alert">
+                {{ message }}
+            </div>{% endfor %}
+            {% endif %}{% endwith %}
         </div>
-{% block body %}{% endblock %}
-    </div>
+{% block body %}{% endblock %}  </div>
 </body>
 </html>

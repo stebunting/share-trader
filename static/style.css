@@ -1,9 +1,16 @@
+/* Navbar dropdown login and register forms */
+.dropdown-form {
+    width: 400px;
+    padding: 15px 30px 0px;
+}
+
 /* Page Headers */
 h1 {
     margin-top: 0px;
 }
 
-/* Inline Target / Stop Loss on Index */
+/* Company Links in Index Table
+   Remove Blue links and include hover */
 td > a:link, td > a:visited {
     color: #000000;
 }
@@ -11,16 +18,6 @@ td > a:link, td > a:visited {
 td > a:hover {
     font-weight: bold;
     text-decoration: none;
-}
-
-#changeportfolio {
-    float: right;
-}
-
-/* Dropdown login and register forms */
-.dropdown-form {
-    width: 400px;
-    padding: 15px 30px 0px;
 }
 
 /* Target / Stop Loss inputs on Index */
@@ -39,56 +36,67 @@ td > a:hover {
     font-weight: bold;
 }
 
-/* Portfolio option on index */
-#portfolioselect { 
-    float: right;
-}
-
-.btn-static:hover, .btn-static:focus {
-    background-position: 0px;
-    border-color: #ccc;
-}
-
-.advfn-logo {
-    border: 0;
-    padding: 0;
-    margin: 0;
-}
-
-.loss {
-    font-weight: bold;
-    color: #f44336;
-}
-
-.profit {
-    font-weight: bold;
-    color: #0c9;
-}
-
-tfoot > tr > td {
-    font-weight: bold;
-}
-
-.alert {
-    font-variant: small-caps;
-    font-size: 1.2em;
-}
-
+/* Index Page - No Shares */
 .nodata {
     font-weight: bold;
     font-size: 3em;
     text-align: center;
 }
 
-#alertmsg > li {
-    color: #F00;
-    list-style-type: none;
+/* Remove hover animation from nav buttons
+   Share Entry Page */
+.btn-static:hover, .btn-static:focus {
+    background-position: 0px;
+    border-color: #ccc;
 }
 
-.form-group {
+/* ADVFN Logo on Share Entry Page */
+.advfn-logo {
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+
+/* Set table footer to bold
+   Share Page Dividend table */
+tfoot > tr > td {
+    font-weight: bold;
+}
+
+/* Padding on date start/end
+   Charts/Statment Pages */
+.datanav {
+    padding: 10px 0px 20px;
+}
+
+.datanav > .form-inline > .form-group {
     padding-right: 10px;
 }
 
-.datanav {
-    padding: 10px 0px 20px;
+/* Colour loss red */
+.loss {
+    font-weight: bold;
+    color: #f44336;
+}
+
+/* Colour profit red */
+.profit {
+    font-weight: bold;
+    color: #0c9;
+}
+
+/* Alert on cash entry page */
+.alert {
+    font-variant: small-caps;
+    font-size: 1.2em;
+}
+
+/* Control Panel */
+.controlpanelinput {
+    width: 450px;
+}
+
+#alertmsg > li {
+    color: #F00;
+    list-style-type: none;
 }

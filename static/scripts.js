@@ -206,7 +206,7 @@ $(function() {
                     $('#company').unwrap();
                 }
                 $('#company').wrap('<div class="input-group" id="advfndiv">');
-                $('#advfndiv').append('<span class="input-group-addon advfn-logo"><a href="http://uk.advfn.com/p.php?pid=financials&symbol=LSE:' + $('#epic').val().toUpperCase() + '" target="_blank"><img src="/static/images/advfn-logo.png" /></a></span>')
+                $('#advfndiv').append('<span class="input-group-addon advfn-logo"><a href="http://uk.advfn.com/p.php?pid=financials&symbol=LSE:' + $('#epic').val().toUpperCase() + '" target="_blank"><img src="/static/images/advfn-logo.png" alt="ADVFN Logo" /></a></span>')
             } else {
                 $('#company').text('');
                 $('#company').attr('value', '');

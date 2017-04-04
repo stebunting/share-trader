@@ -10,15 +10,15 @@
         <div class="col-md-8">
             <div class="pull-right">
                 <div class="btn-group" role="group">
-                    <a href="{{ url_for('shares') }}?submit=submit" type="button" class="btn btn-danger">New</a>
+                    <a href="{{ url_for('shares') }}?submit=submit" class="btn btn-danger">New</a>
                 </div>
                 <div class="btn-group" role="group">
-                    <a href="{{ url_for('shares') }}?submit=update&id={{ nav['lastid'] }}" type="button" class="btn btn-primary"{% if nav['numEntries'] == 0 %} disabled{% endif %}>Historical</a>
+                    <a href="{{ url_for('shares') }}?submit=update&id={{ nav['lastid'] }}" class="btn btn-primary {% if nav['numEntries'] == 0 %} disabled{% endif %}">Historical</a>
                 </div>
                 <div class="btn-group" role="group">
-                    <a href="{% if nav['previd'] == None %}#{% else %}{{ url_for('shares') }}?submit=update&id={{ nav['previd'] }}{% endif %}" type="button" class="btn btn-default linkblack"{% if nav['previd'] == None or not share['id'] %} disabled="true"{% endif %}>Previous</a>
-                    <button type="button" class="btn btn-default btn-static"{% if not share['id'] %} disabled="true">0{% else %}>{{ nav['index'] }}{% endif %} / {{ nav['numEntries'] }}</button>
-                    <a href="{% if nav['nextid'] == None %}#{% else %}{{ url_for('shares') }}?submit=update&id={{ nav['nextid'] }}{% endif %}" type="button" class="btn btn-default linkblack"{% if nav['nextid'] == None or not share['id'] %} disabled="true"{% endif %}>Next</a>
+                    <a href="{% if nav['previd'] == None %}#{% else %}{{ url_for('shares') }}?submit=update&id={{ nav['previd'] }}{% endif %}" class="btn btn-default linkblack{% if nav['previd'] == None or not share['id'] %} disabled{% endif %}">Previous</a>
+                    <button class="btn btn-default btn-static{% if not share['id'] %} disabled">0{% else %}">{{ nav['index'] }}{% endif %} / {{ nav['numEntries'] }}</button>
+                    <a href="{% if nav['nextid'] == None %}#{% else %}{{ url_for('shares') }}?submit=update&id={{ nav['nextid'] }}{% endif %}" class="btn btn-default linkblack{% if nav['nextid'] == None or not share['id'] %} disabled{% endif %}">Next</a>
                 </div>
             </div>
         </div>
@@ -44,7 +44,7 @@
                             <div class="col-md-9" id="advfnmasterdiv">
                                 {% if share['company'] %}<div class="input-group" id="advfndiv">{% endif %}
                                     <input type="text" class="form-control" id="company" name="company" placeholder="No valid EPIC entered"{% if share['company'] %} value="{{ share['company'] }}"{% endif %} readonly>
-                                    {% if share['company'] %}<span class="input-group-addon advfn-logo"><a href="http://uk.advfn.com/p.php?pid=financials&symbol=LSE:{{ share['epic'] }}" target="_blank"><img src="/static/images/advfn-logo.png" /></a></span>{% endif %}
+                                    {% if share['company'] %}<span class="input-group-addon advfn-logo"><a href="http://uk.advfn.com/p.php?pid=financials&symbol=LSE:{{ share['epic'] }}" target="_blank"><img src="/static/images/advfn-logo.png" alt="ADVFN Logo" /></a></span>{% endif %}
                                 {% if share['company'] %}</div>{% endif %}
                             </div>
                         </div>
@@ -71,8 +71,10 @@
                                     </tr>{% endfor %}
                                 </tbody>
                                 <tfoot>
-                                    <td class="text-right">TOTAL</td>
-                                    <td class="text-right">{{ share['dividends']|gbp }}</td>
+                                    <tr>
+                                        <td class="text-right">TOTAL</td>
+                                        <td class="text-right">{{ share['dividends']|gbp }}</td>
+                                    </tr>
                                 </tfoot>
                             </table>
                         </div>
@@ -92,7 +94,7 @@
                         </div>
         
                         <div class="form-group">
-                            <label class="control-label col-md-3" for="status">Status</label>
+                            <label class="control-label col-md-3" for="statusopen">Status</label>
                             <div class="col-md-9">
                                 <label class="radio inline col-md-3">
                                     <input type="radio" name="status" id="statusopen" value="1" {% if share['status'] != 0|int %}checked="checked"{% endif %}>
@@ -106,9 +108,9 @@
                         </div>
                         <div class="row">
                             <div class="col-md-8 col-md-push-4">
-                                {% if submit == 'update' %}<button type="submit" class="btn btn-default" name="submit" value="update" class="btn">Update</button>
-                                <button type="submit" class="btn btn-default" name="submit" value="delete" class="btn">Delete</button>
-                                {% else %}<button type="submit" class="btn btn-default" name="submit" value="submit" class="btn">Submit</button>{% endif %}
+                                {% if submit == 'update' %}<button type="submit" class="btn btn-default" name="submit" value="update">Update</button>
+                                <button type="submit" class="btn btn-default" name="submit" value="delete">Delete</button>
+                                {% else %}<button type="submit" class="btn btn-default" name="submit" value="submit">Submit</button>{% endif %}
                             </div>
                         </div>
                     </div>
@@ -274,5 +276,4 @@
             </div>
         </div>
     </form>
-
 {% endblock %}
