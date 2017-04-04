@@ -23,7 +23,7 @@ from functions import *
 
 try:
     from settings import *
-except:
+except ImportError:
     mysqlhost = os.environ['MYSQLHOST']
     mysqldb = os.environ['MYSQLDB']
     mysqluser = os.environ['MYSQLUSER']
@@ -32,6 +32,8 @@ except:
     gmailuser = os.environ['GMAILUSER']
     gmailpassword = os.environ['GMAILPASSWORD']
     loc = os.environ['LOC']
+    schedule_id = os.environ['SCHEDULE_ID']
+    schedule_portfolio = os.environ['SCHEDULE_PORTFOLIO']
 
 locale.setlocale(locale.LC_ALL, loc)
 
@@ -737,8 +739,8 @@ def controlpanel():
 # Route to login automatically and schedule lookup
 @app.route('/schedule')
 def schedule():
-    session['user_id'] = 1
-    session['portfolio'] = 1
+    session['user_id'] = schedule_id
+    session['portfolio'] = schedule_portfolio
     data = updateshareprices()
     session.pop('user_id', None)
     session.pop('portfolio', None)
