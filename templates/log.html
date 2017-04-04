@@ -11,8 +11,9 @@
     	<thead>
     		<tr>
             	<th class="text-right">Date</th>
-            	<th class="text-right">Market Exposure</th>
-            	<th class="text-right" colspan="2">Profit / Loss</th>
+            	<th class="text-right">Exposure</th>
+            	<th class="text-right" colspan="2">Daily</th>
+            	<th class="text-right" colspan="2">Total Profit/Loss</th>
             	<th class="text-right">Difference</th>
             	<th class="text-right">Capital</th>
             	<th class="text-right">Cash</th>
@@ -24,6 +25,8 @@
         	{% for item in log %}<tr>
                 <td class="text-right">{{ item['date']|dateFormat }}</td>
                 <td class="text-right">{{ item['exposure']|gbp }}</td>
+                <td class="text-right{% if item['dailyprofit'] %} {% if item['dailyprofit'] < 0 %}loss{% else %}profit{% endif %}">{{ item['dailyprofit']|gbp }}{% else %}">{% endif %}</td>
+                <td class="text-right{% if item['dailypercent'] %} {% if item['dailypercent'] < 0 %}loss{% else %}profit{% endif %}">{{ item['dailypercent']|percentage }}{% else %}">{% endif %}</td>
                 <td class="text-right {% if item['percentage'] < 0 %}loss{% else %}profit{% endif %}">{{ item['profitloss']|gbp }}</td>
                 <td class="text-right {% if item['percentage'] < 0 %}loss{% else %}profit{% endif %}">{{ item['percentage']|percentage }}</td>
                 <td class="text-right {% if (item['percentage'] - item['ftse100percent']) < 0 %}loss{% else %}profit{% endif %}">{{ (item['percentage'] - item['ftse100percent'])|percentage }}</td>

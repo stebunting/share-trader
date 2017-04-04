@@ -84,3 +84,9 @@ tfoot > tr > td {
     color: #F00;
     list-style-type: none;
 }
+
+.tt-suggestion {
+    border: 4px #000;
+    padding: 3px 20px;
+    background-color: #FFF;
+}

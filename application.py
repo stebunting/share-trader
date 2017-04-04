@@ -21,6 +21,7 @@ from pygal.style import Style
 # Helper functions
 from functions import *
 
+# Get environment variables, either locally or from config vars
 try:
     from settings import *
 except ImportError:
@@ -52,6 +53,7 @@ app.jinja_env.filters['gbp'] = gbp
 app.jinja_env.filters['shareprice'] = shareprice
 app.jinja_env.filters['percentage'] = percentage
 app.jinja_env.filters['dateFormat'] = dateFormat
+app.jinja_env.filters['dateFormatISO'] = dateFormatISO
 
 # Connect to MySQL database
 conn = mysql.connect()
@@ -329,6 +331,25 @@ def shares():
 def statement():
     msg = []
     
+    # Set default values for start and end date
+    today = datetime.datetime.now()
+    dates = {
+        'start': today + datetime.timedelta(days=-365),
+        'end': today
+    }
+    
+    # If default button was not pressed, check for input and verify
+    if request.args.get('default') != 'Default':
+        if request.args.get('startdate'):
+            date = verifyDate(request.args.get('startdate'))
+            if date:
+                dates['start'] = date
+    
+        if request.args.get('enddate'):
+            date = verifyDate(request.args.get('enddate'))
+            if date:
+                dates['end'] = date
+    
     # If new cash transaction posted
     if request.method == 'POST':
         
@@ -466,7 +487,7 @@ def statement():
         balance = row['balance']
     
     date = datetime.datetime.now().strftime("%Y-%m-%d")
-    return render_template('statement.html', prefill=prefill, cash_categories=cash_categories, statement=statement, portfolios=getPortfolio()[0], date=date, msg=msg)
+    return render_template('statement.html', prefill=prefill, cash_categories=cash_categories, statement=statement, portfolios=getPortfolio()[0], date=date, msg=msg, dates=dates)
 
 # Route for Log Page
 @app.route('/log', methods=['GET', 'POST'])
@@ -488,6 +509,10 @@ def log():
             log[i]['percentage'] = 0
         else:
             log[i]['percentage'] = (100 * ((log[i]['exposure'] + log[i]['cash']) / log[i]['capital'])) - 100
+        if i > 0:
+            log[i - 1]['dailyprofit'] = previous_exp - log[i]['exposure']
+            log[i - 1]['dailypercent'] = 100 * (log[i - 1]['dailyprofit'] / (previous_exp - log[i - 1]['dailyprofit']))
+        previous_exp = log[i]['exposure']
     
     # Recalculate all rows capital/cash in logging to fix errors
     if request.method == 'POST' and request.form.get('submit') == 'Recalculate':
@@ -506,8 +531,8 @@ def charts():
     # Set default values for start and end date
     today = datetime.datetime.now()
     dates = {
-        'start': (today + datetime.timedelta(days=-365)).strftime("%Y-%m-%d"),
-        'end': today.strftime("%Y-%m-%d")
+        'start': (today + datetime.timedelta(days=-365)),
+        'end': today
     }
     
     # If default button was not pressed, check for input and verify

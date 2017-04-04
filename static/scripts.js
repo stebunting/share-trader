@@ -101,13 +101,12 @@ function refreshPrices() {
     
     // Get latest share price data from application
     // Send each price to updateBid function
-    $.getJSON('/updateshareprices', function(data) {
+    $.getJSON('/updateshareprices').done(function(data) {
         $.each(data[0], function(key, val) {
             updateRow(val);
-        });
+        })
         updateTotals(data[1]);
-    }).done(function() {
-    
+        
         // When done, set refresh button active and reset log button
         $btn.button('reset');
         $('#logState').button('reset').addClass('btn-primary').removeClass('btn-success');
@@ -128,7 +127,7 @@ function refreshPrices() {
 function divPicker(epic) {
     if ($('#cash_category').val() == '2') {
         var $options = '';
-        $.getJSON('/getepics', function(data) {
+        $.getJSON('/getepics').done(function() {
             $.each(data, function(key, val) {
                 $options += '<option value="' + val['epic'] + '"'
                 if (epic == val['epic']) {
@@ -136,7 +135,7 @@ function divPicker(epic) {
                 }
                 $options += '>' + val['epic'] + ' (' + val['company'] + ')</option>';
             });
-        }).done(function() {
+            
             if ($options != '') {
                 $start = '<div class="form-group" id="extraselect"><div class="col-sm-9 col-sm-push-3"><select class="form-control" name="sharedividend" id="sharedividend">';
                 $end = '</select></div></div>';
@@ -198,7 +197,7 @@ $(function() {
     // Share Page
     // Updates company and ADVFN link when EPIC changed
     $('#epic').keyup(function() {
-        $.getJSON('/getcompanyname?epic=' + $('#epic').val(), function(data) {
+        $.getJSON('/getcompanyname?epic=' + $('#epic').val()).done(function(data) {
             if (data != '') {
                 $('#company').text(data[0]['company']);
                 $('#company').attr('value', data[0]['company']);

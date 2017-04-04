@@ -24,6 +24,9 @@ def percentage(value):
 def dateFormat(value):
     return datetime.datetime.strftime(value, "%d %b %Y")
 
+def dateFormatISO(value):
+    return datetime.datetime.strftime(value, "%Y-%m-%d")
+
 def quoteLogin():
     payload = {
         'login_username': 'sharetrader6',
@@ -76,7 +79,7 @@ def login_required(f):
 # Function to verify date
 def verifyDate(test):
     try:
-        verified = datetime.datetime.strptime(str(test), "%Y-%m-%d").strftime("%Y-%m-%d")
+        verified = datetime.datetime.strptime(str(test), "%Y-%m-%d")
         return verified
     except:
         return False
