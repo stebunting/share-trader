@@ -34,8 +34,6 @@ except ImportError:
     smtpuser = os.environ['SMTPUSER']
     smtppassword = os.environ['SMTPPASSWORD']
     loc = os.environ['LOC']
-    schedule_id = os.environ['SCHEDULE_ID']
-    schedule_portfolio = os.environ['SCHEDULE_PORTFOLIO']
     
 locale.setlocale(locale.LC_ALL, loc)
 
