@@ -8,14 +8,14 @@
     <div class="col-md-12">
         <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
             <div class="panel panel-default">
-                <div class="panel-heading" role="tab" id="headingThree">
+                <div class="panel-heading" role="tab" id="headingOne">
                     <h4 class="panel-title">
-                        <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                        <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
                         Portfolios
                         </a>
                     </h4>
                 </div>
-                <div id="collapseThree" class="panel-collapse collapse{% if panel == 1 %} in{% endif %}" role="tabpanel" aria-labelledby="headingThree">
+                <div id="collapseOne" class="panel-collapse collapse{% if panel == 1 %} in{% endif %}" role="tabpanel" aria-labelledby="headingOne">
                     <div class="panel-body">
                         <table class="table table-striped table-hover table-bordered table-condensed">
                             <thead>
@@ -53,6 +53,40 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading" role="tab" id="headingZero">
+                    <h4 class="panel-title">
+                        <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseZero" aria-expanded="false" aria-controls="collapseZero">
+                        E-Mail Address
+                        </a>
+                    </h4>
+                </div>
+                <div id="collapseZero" class="panel-collapse collapse{% if panel == 0 %} in{% endif %}" role="tabpanel" aria-labelledby="headingZero">
+                    <div class="panel-body">
+                        <form class="form-horizontal" action="{{ url_for('controlpanel') }}" method="post">
+                            <input type="hidden" name="panel" value="0">
+                            <div class="form-group">
+                                <label for="email" class="col-md-4 control-label">E-Mail</label>
+                                <div class="col-md-8">
+                                    <input type="text" class="form-control" maxlength="100" id="email" name="email" placeholder="E-Mail Address" value="{{ user['email'] }}">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-offset-4 col-md-8">
+                                    <div class="checkbox">
+                                        <label><input{% if user['email'] == '' %} disabled{% endif %} type="checkbox" name="dailyalert"{% if user['dailyalert'] == 1 %} checked="checked"{% endif %}> Receive Daily Alert</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-offset-4 col-md-8">
+                                    <button type="submit" class="btn btn-default" name="submit" value="Change E-Mail">Submit</button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -96,14 +130,14 @@
                 </div>
             </div>
             <div class="panel panel-default">
-                <div class="panel-heading" role="tab" id="headingOne">
+                <div class="panel-heading" role="tab" id="headingThree">
                     <h4 class="panel-title">
-                        <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                        <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseThree" aria-expanded="true" aria-controls="collapseThree">
                         Change Password
                         </a>
                     </h4>
                 </div>
-                <div id="collapseOne" class="panel-collapse collapse{% if panel == 3 %} in{% endif %}" role="tabpanel" aria-labelledby="headingOne">
+                <div id="collapseThree" class="panel-collapse collapse{% if panel == 3 %} in{% endif %}" role="tabpanel" aria-labelledby="headingThree">
                     <div class="panel-body">
                         <form class="form-horizontal" action="{{ url_for('controlpanel') }}" method="post">
                             <input type="hidden" name="panel" value="3">
@@ -133,7 +167,7 @@
                             </div>
                             <div class="form-group">
                                 <div class="col-md-offset-4 col-md-8">
-                                    <button type="submit" class="btn btn-default" name="submit" value="Change Password">Change Password</button>
+                                    <button type="submit" class="btn btn-default" name="submit" value="Change Password">Change</button>
                                 </div>
                             </div>
                         </form>

@@ -5,7 +5,8 @@ import os
 import datetime
 import json
 import smtplib
-from email.message import EmailMessage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 from flask import Flask, render_template, request, jsonify, flash, redirect, session, url_for, make_response
 from flaskext.mysql import MySQL
@@ -757,32 +758,62 @@ def controlpanel():
                 else:
                     flash('You got your old password wrong!', 'danger')
         
-    # Set correct panel open
+        # Change Settings
+        elif request.form.get('submit') == 'Change E-Mail':
+            # Validate input
+            valid = True
+            email = request.form.get('email')
+            dailyalert = 1 if request.form.get('dailyalert') == 'on' else 0
+            if email:
+                if '@' not in email or '.' not in email:
+                    flash('Invalid e-mail address', 'danger')
+                    valid = False
+            if valid:
+                cursor.execute('UPDATE users SET email=%s, dailyalert=%s WHERE id=%s', [email, dailyalert, session['user_id']])
+                conn.commit()
+        
+    # Open correct panel
     panel = int(request.form.get('panel')) if request.form.get('panel') else 1
     
-    return render_template('controlpanel.html', portfolios=getPortfolio()[0], panel=panel)
+    # Get email address
+    cursor.execute('SELECT email, dailyalert FROM users WHERE id=%s', session['user_id'])
+    user = cursor.fetchone()
+    
+    return render_template('controlpanel.html', portfolios=getPortfolio()[0], panel=panel, user=user)
 
 # Route to login automatically and schedule lookup
 @app.route('/schedule')
 def schedule():
-    session['user_id'] = schedule_id
-    session['portfolio'] = schedule_portfolio
-    data = updateshareprices()
-    session.pop('user_id', None)
-    session.pop('portfolio', None)
-    
-    content = json.loads(data.get_data())
-    details = content[-1]
-     
-    msg = EmailMessage()
-    msg.set_content("Here's your update for today!\n\nMarket Exposure: {}\nProfit: {} {}\n\nDaily Proft: {} {}".format(gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent'])))
-    msg['From'] = 'info@stevebunting.com'
-    msg['To'] = 'stebunting@gmail.com'
-    msg['Subject'] = 'Stock portfolio update for {}'.format(dateFormat(datetime.datetime.now()))
-    server = smtplib.SMTP('smtp.stevebunting.com', 587)
-    server.login(smtpuser, smtppassword)
-    server.send_message(msg)
-    server.close()
+    cursor.execute("SELECT id, email FROM users WHERE email != '' AND dailyalert=1")
+    users = cursor.fetchall()
+    html = '<!DOCTYPE html><html lang="en"><head></head><body><p>Here\'s an update on your portfolio after today\s trading.</p>'
+    plaintext = 'Here\'s an update on your portfolio after today\s trading.\n'
+    for user in users:
+        cursor.execute('SELECT id, name FROM portfolios WHERE userid=%s', user['id'])
+        portfolios = cursor.fetchall()
+        session['user_id'] = user['id']
+        for portfolio in portfolios:
+            session['portfolio'] = portfolio['id']
+            data = updateshareprices()
+            content = json.loads(data.get_data())
+            details = content[-1]
+            html += '<h3>Portfolio: {}</h3><p><b>Market Exposure:</b> {}<br /><b>Profit:</b> {} {}<br /><b>Daily Proft:</b> {} {}</p>'.format(portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
+            plaintext += '\nPortfolio: {}\nMarket Exposure: {}\nProfit: {} {}\nDaily Proft: {} {}\n'.format(portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
+            session.pop('portfolio', None)
+        html += '</body></html>'
+        session.pop('user_id', None)
+        
+        # Send e-mail
+        msg = MIMEMultipart('alternative')
+        msg.attach(MIMEText(html, 'html'))
+        msg.attach(MIMEText(plaintext, 'plain'))
+        msg['Subject'] = 'Stock portfolio update for {}'.format(dateFormat(datetime.datetime.now()))
+        msg['From'] = 'info@stevebunting.com'
+        msg['To'] = user['email']
+        server = smtplib.SMTP('smtp.stevebunting.com', 587)
+        server.login(smtpuser, smtppassword)
+        server.sendmail('sharetrader@stevebunting.com', user['email'], msg.as_string())
+        server.close()
     return 'True'
 
 # Route to update share prices and return values as JSON for insertion by JS
