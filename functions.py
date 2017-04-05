@@ -11,9 +11,15 @@ from lxml import html
 
 from functools import wraps
 
-def gbp(value):
-    #return "£{:,.2f}".format(value)
-    return locale.currency(value, grouping=True)
+def gbp(value, **kwargs):
+    try:
+        value = float(value)
+    except TypeError:
+        return value
+    retval = locale.currency(value, grouping=True)
+    if 'profitloss' in kwargs and kwargs['profitloss'] and value >= 0:
+        retval = '+{}'.format(retval)
+    return retval
 
 def shareprice(value):
 	return "{:.2f}".format(value)
@@ -83,4 +89,3 @@ def verifyDate(test):
         return verified
     except:
         return False
-    

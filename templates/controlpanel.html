@@ -60,7 +60,7 @@
                 <div class="panel-heading" role="tab" id="headingZero">
                     <h4 class="panel-title">
                         <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseZero" aria-expanded="false" aria-controls="collapseZero">
-                        E-Mail Address
+                        Daily Alert
                         </a>
                     </h4>
                 </div>
@@ -69,7 +69,7 @@
                         <form class="form-horizontal" action="{{ url_for('controlpanel') }}" method="post">
                             <input type="hidden" name="panel" value="0">
                             <div class="form-group">
-                                <label for="email" class="col-md-4 control-label">E-Mail</label>
+                                <label for="email" class="col-md-4 control-label">E-mail Address</label>
                                 <div class="col-md-8">
                                     <input type="text" class="form-control" maxlength="100" id="email" name="email" placeholder="E-Mail Address" value="{{ user['email'] }}">
                                 </div>

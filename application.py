@@ -779,17 +779,27 @@ def controlpanel():
     
     return render_template('controlpanel.html', portfolios=getPortfolio()[0], panel=panel, user=user)
 
-# Route to login automatically and schedule lookup
+# Route to schedule log and send daily e-mail
 @app.route('/schedule')
 def schedule():
-    cursor.execute("SELECT id, email FROM users WHERE email != '' AND dailyalert=1")
+    # Get all users
+    cursor.execute("SELECT id, email, dailyalert FROM users")
     users = cursor.fetchall()
-    html = '<!DOCTYPE html><html lang="en"><head></head><body><p>Here\'s an update on your portfolio after today\s trading.</p>'
-    plaintext = 'Here\'s an update on your portfolio after today\s trading.\n'
+    
+    # Prepare e-mail text
+    html = '<!DOCTYPE html><html lang="en"><head></head><body><p>Here\'s an update on your portfolio after today\'s trading.</p>'
+    plaintext = 'Here\'s an update on your portfolio after today\'s trading.\n'
+    
+    # Loop over users
     for user in users:
+        # Get all portfolios and shares
         cursor.execute('SELECT id, name FROM portfolios WHERE userid=%s', user['id'])
         portfolios = cursor.fetchall()
+        cursor.execute('SELECT portfolioid, epic, sellprice, value, profitloss, percentage FROM shares WHERE userid=%s AND status=1', user['id'])
+        shares = cursor.fetchall()
         session['user_id'] = user['id']
+        
+        # Loop over portfolios, get data and add to message
         for portfolio in portfolios:
             session['portfolio'] = portfolio['id']
             data = updateshareprices()
@@ -797,21 +807,25 @@ def schedule():
             details = content[-1]
             html += '<h3>Portfolio: {}</h3><p><b>Market Exposure:</b> {}<br /><b>Profit:</b> {} {}<br /><b>Daily Proft:</b> {} {}</p>'.format(portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
             plaintext += '\nPortfolio: {}\nMarket Exposure: {}\nProfit: {} {}\nDaily Proft: {} {}\n'.format(portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
+            for share in shares:
+                if share['portfolioid'] == session['portfolio']:
+                    plaintext += '{}: {} {} {} {}\n'.format(share['epic'], shareprice(share['sellprice']), gbp(share['value']), gbp(share['profitloss'], profitloss=True), percentage(share['percentage']))
             session.pop('portfolio', None)
         html += '</body></html>'
         session.pop('user_id', None)
         
-        # Send e-mail
-        msg = MIMEMultipart('alternative')
-        msg.attach(MIMEText(html, 'html'))
-        msg.attach(MIMEText(plaintext, 'plain'))
-        msg['Subject'] = 'Stock portfolio update for {}'.format(dateFormat(datetime.datetime.now()))
-        msg['From'] = 'info@stevebunting.com'
-        msg['To'] = user['email']
-        server = smtplib.SMTP('smtp.stevebunting.com', 587)
-        server.login(smtpuser, smtppassword)
-        server.sendmail('sharetrader@stevebunting.com', user['email'], msg.as_string())
-        server.close()
+        # Send e-mail if requested
+        if user['dailyalert'] == 1 and user['email'] != '':
+            msg = MIMEMultipart('alternative')
+            msg.attach(MIMEText(html, 'html'))
+            msg.attach(MIMEText(plaintext, 'plain'))
+            msg['Subject'] = 'Stock portfolio update for {}'.format(dateFormat(datetime.datetime.now()))
+            msg['From'] = 'info@stevebunting.com'
+            msg['To'] = user['email']
+            server = smtplib.SMTP('smtp.stevebunting.com', 587)
+            server.login(smtpuser, smtppassword)
+            server.sendmail('sharetrader@stevebunting.com', user['email'], msg.as_string())
+            server.close()
     return 'True'
 
 # Route to update share prices and return values as JSON for insertion by JS
