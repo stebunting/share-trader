@@ -30,12 +30,12 @@ except ImportError:
     mysqluser = os.environ['MYSQLUSER']
     mysqlpassword = os.environ['MYSQLPASSWORD']
     secretkey = os.environ['SECRETKEY']
-    gmailuser = os.environ['GMAILUSER']
-    gmailpassword = os.environ['GMAILPASSWORD']
+    smtpuser = os.environ['SMTPUSER']
+    smtppassword = os.environ['SMTPPASSWORD']
     loc = os.environ['LOC']
     schedule_id = os.environ['SCHEDULE_ID']
     schedule_portfolio = os.environ['SCHEDULE_PORTFOLIO']
-
+    
 locale.setlocale(locale.LC_ALL, loc)
 
 app = Flask(__name__)
@@ -58,6 +58,7 @@ app.jinja_env.filters['dateFormatISO'] = dateFormatISO
 # Connect to MySQL database
 conn = mysql.connect()
 cursor = conn.cursor()
+cursor.execute("SET time_zone='Europe/Stockholm'")
 
 # Function to get portfolio data, required for nav bar on every page
 # Returns array with index of current selected portfolio
@@ -772,17 +773,14 @@ def schedule():
     
     content = json.loads(data.get_data())
     details = content[-1]
-    
+     
     msg = EmailMessage()
     msg.set_content("Here's your update for today!\n\nMarket Exposure: {}\nProfit: {} {}\n\nDaily Proft: {} {}".format(gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent'])))
-    msg['From'] = 'stebunting@gmail.com'
+    msg['From'] = 'info@stevebunting.com'
     msg['To'] = 'stebunting@gmail.com'
     msg['Subject'] = 'Stock portfolio update for {}'.format(dateFormat(datetime.datetime.now()))
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.ehlo()
-    server.starttls()
-    server.ehlo()
-    server.login(gmailuser, gmailpassword)
+    server = smtplib.SMTP('smtp.stevebunting.com', 587)
+    server.login(smtpuser, smtppassword)
     server.send_message(msg)
     server.close()
     return 'True'

@@ -80,9 +80,9 @@ function updateTotals(company) {
             $('#dailypercent').addClass('profit').removeClass('loss');
         };
     } else {
-        if ($('#dailyprofit').hasClass('success')) {
-            $('#dailyprofit').addClass('loss').removeClass('success');
-            $('#dailyprofit').addClass('loss').removeClass('success');
+        if ($('#dailyprofit').hasClass('profit')) {
+            $('#dailyprofit').addClass('loss').removeClass('profit');
+            $('#dailyprofit').addClass('loss').removeClass('profit');
         };
     }
     $('#dailyprofit').text(gbp(company['dailyprofit']));
