@@ -90,7 +90,7 @@ def updateAssets():
     assets = getAssets()
     cursor.execute('UPDATE portfolios SET capital=%s, cash=%s WHERE id=%s AND userid=%s', [assets['capital'], assets['cash'], session['portfolio'], session['user_id']])
     conn.commit()
-            
+
 # Route for Index Page, shows current open positions
 @app.route('/')
 @login_required
@@ -811,7 +811,7 @@ def schedule():
         # Get all portfolios and shares
         cursor.execute('SELECT id, name FROM portfolios WHERE userid=%s', user['id'])
         portfolios = cursor.fetchall()
-        cursor.execute('SELECT id, portfolioid, epic, target, stoploss, sellprice, value, profitloss, percentage FROM shares WHERE userid=%s AND status=1 ORDER BY epic ASC', user['id'])
+        cursor.execute('SELECT id, portfolioid, epic, target, stoploss, sellprice, bidopen, value, profitloss, percentage FROM shares WHERE userid=%s AND status=1 ORDER BY epic ASC', user['id'])
         shares = cursor.fetchall()
         session['user_id'] = user['id']
         
@@ -821,12 +821,12 @@ def schedule():
             data = updateshareprices()
             content = json.loads(data.get_data())
             details = content[-1]
-            html += '<h3>Portfolio: <a href="https://share-trader.herokuapp.com/?portfolio={}">{}</a></h3><p><strong>Market Exposure:</strong> {}<br /><strong>Profit:</strong> {} ({})<br /><strong>Daily Proft:</strong> {} ({})</p><table><thead><tr><th>EPIC</th><th>Target</th><th>Stop Loss</th><th>Bid Price</th><th>Value</th><th colspan="2">Profit/Loss</th></tr></thead><tbody>'.format(portfolio['id'], portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
+            html += '<h3>Portfolio: <a href="https://share-trader.herokuapp.com/?portfolio={}">{}</a></h3><p><strong>Market Exposure:</strong> {}<br /><strong>Profit:</strong> {} ({})<br /><strong>Daily Proft:</strong> {} ({})</p><table><thead><tr><th>EPIC</th><th>Target</th><th>Stop Loss</th><th>Bid Price</th><th>Daily</th><th>Value</th><th colspan="2">Profit/Loss</th></tr></thead><tbody>'.format(portfolio['id'], portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
             plaintext += '\nPortfolio: {}\nMarket Exposure: {}\nProfit: {} ({})\nDaily Proft: {} ({})\n'.format(portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
             for share in shares:
                 if share['portfolioid'] == session['portfolio']:
-                    plaintext += '{}: {} {} {} {}\n'.format(share['epic'], shareprice(share['sellprice']), gbp(share['value']), gbp(share['profitloss'], profitloss=True), percentage(share['percentage']))
-                    html += '<tr><td><a href="https://share-trader.herokuapp.com/shares?submit=update&id={}">{}</a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(share['id'], share['epic'], shareprice(share['target']), shareprice(share['stoploss']), shareprice(share['sellprice']), gbp(share['value']), gbp(share['profitloss'], profitloss=True), percentage(share['percentage']))
+                    plaintext += '{}: {} ({}) {} {} {}\n'.format(share['epic'], shareprice(share['sellprice']), shareprice(share['sellprice'] - share['bidopen'], profitloss=True), gbp(share['value']), gbp(share['profitloss'], profitloss=True), percentage(share['percentage']))
+                    html += '<tr><td><a href="https://share-trader.herokuapp.com/shares?submit=update&id={}">{}</a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(share['id'], share['epic'], shareprice(share['target']), shareprice(share['stoploss']), shareprice(share['sellprice']), shareprice(share['sellprice'] - share['bidopen'], profitloss=True), gbp(share['value']), gbp(share['profitloss'], profitloss=True), percentage(share['percentage']))
             html += '</tbody></table>'
             session.pop('portfolio', None)
         plaintext += '\nTo stop receiving these updates, please update your settings at http://sharetrader.stevebunting.com/controlpanel?panel=1\n'
@@ -846,6 +846,13 @@ def schedule():
             server.sendmail('sharetrader@stevebunting.com', user['email'], msg.as_string())
             server.close()
     return 'True'
+
+# Route to reset bidopen
+@app.route('/resetbidopen')
+def resetbidopen():
+    cursor.execute('UPDATE shares SET bidopen=sellprice WHERE status=1')
+    conn.commit()
+    return 'true'
 
 # Route to update share prices and return values as JSON for insertion by JS
 @app.route('/updateshareprices', methods=['GET', 'POST'])

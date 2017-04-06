@@ -64,23 +64,25 @@
                 <th class="text-right">Target</th>
                 <th class="text-right">Stop Loss</th>
                 <th class="text-right">Bid</th>
+                <th class="text-right">Gain</th>
                 <th class="text-right">Value</th>
                 <th class="text-right">Profit/Loss</th>
                 <th class="text-right">Percentage</th>
             </tr>
         </thead>
         <tbody>
-            {% if sharedata %}{% for row in sharedata %}<tr>
+            {% if sharedata %}{% for row in sharedata %}{% set dailygain = row['sellprice'] - row['bidopen'] %}<tr>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-epic" class="text-right"><a href="{{ url_for('shares') }}?submit=update&id={{ row['id'] }}">{{ row['epic'] }}</a></td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-company" class="text-left"><a href="{{ url_for('shares') }}?submit=update&id={{ row['id'] }}">{% filter title %}{{ row['company'].strip() }}{% endfilter %}</a></td>
-                <td id="{{ row['id'] }}-{{ row['epic']}}-buyprice" class="text-right">{{ row['buyprice']|shareprice }}</td>
-                <td id="{{ row['id'] }}-{{ row['epic']}}-quantity" class="text-right">{{ row['quantity'] }}</td>
-                <td id="{{ row['id'] }}-{{ row['epic']}}-target" class="text-right{% if row['target'] <= row['sellprice'] %} success">{% else %}">{% endif %}<input type="text" class="indexform targetinput form-control" name="{{ row['id'] }}-{{ row['epic']}}-targetedit" id="{{ row['id'] }}-{{ row['epic']}}-target-edit" value="{{ row['target']|shareprice }}"></td>
-                <td id="{{ row['id'] }}-{{ row['epic']}}-stoploss" class="text-right{% if row['stoploss'] >= row['sellprice'] %} danger">{% else %}">{% endif %}<input type="text" class="indexform stoplossinput form-control" name="{{ row['id'] }}-{{ row['epic']}}-stoplossedit" id="{{ row['id'] }}-{{ row['epic']}}-stoploss-edit" value="{{ row['stoploss']|shareprice }}"></td>
-                <td class="text-right {{ row['epic'] }}"><strong id="{{ row['id'] }}-{{ row['epic']}}-bid">{{ row['sellprice']|shareprice }}</strong></td>
-                <td id="{{ row['id'] }}-{{ row['epic']}}-value" class="text-right">{{ (row['sellprice'] * row['quantity'] * 0.01)|gbp }}</td>
-                <td id="{{ row['id'] }}-{{ row['epic']}}-profitloss" class="text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}{{ row['profitloss']|gbp }}</td>
-                <td id="{{ row['id'] }}-{{ row['epic']}}-percentage" class="text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}{{ row['percentage']|percentage }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-buyprice" class="vert-middle text-right">{{ row['buyprice']|shareprice }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-quantity" class="vert-middle text-right">{{ row['quantity'] }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-target" class="vert-middle text-right{% if row['target'] <= row['sellprice'] %} success">{% else %}">{% endif %}<input type="text" class="indexform targetinput form-control" name="{{ row['id'] }}-{{ row['epic']}}-targetedit" id="{{ row['id'] }}-{{ row['epic']}}-target-edit" value="{{ row['target']|shareprice }}"></td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-stoploss" class="vert-middle text-right{% if row['stoploss'] >= row['sellprice'] %} danger">{% else %}">{% endif %}<input type="text" class="indexform stoplossinput form-control" name="{{ row['id'] }}-{{ row['epic']}}-stoplossedit" id="{{ row['id'] }}-{{ row['epic']}}-stoploss-edit" value="{{ row['stoploss']|shareprice }}"></td>
+                <td class="vert-middle text-right {{ row['epic'] }}"><strong id="{{ row['id'] }}-{{ row['epic']}}-bid">{{ row['sellprice']|shareprice }}</strong></td>
+                <td class="vert-middle text-right {% if dailygain < 0 %}loss">{% else %}profit">+{% endif %}{{ dailygain|shareprice }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-value" class="vert-middle text-right">{{ (row['sellprice'] * row['quantity'] * 0.01)|gbp }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-profitloss" class="vert-middle text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}{{ row['profitloss']|gbp }}</td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-percentage" class="vert-middle text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}{{ row['percentage']|percentage }}</td>
             </tr>{% endfor %}{% else %}<td class="nodata" colspan="10">No shares yet</td>{% endif %}
         </tbody>
     </table>

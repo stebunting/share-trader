@@ -11,6 +11,10 @@ h1 {
 
 /* Company Links in Index Table
    Remove Blue links and include hover */
+td.vert-middle {
+    vertical-align: middle!important;
+}
+
 td > a:link, td > a:visited {
     color: #000000;
 }

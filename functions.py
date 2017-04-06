@@ -21,8 +21,15 @@ def gbp(value, **kwargs):
         retval = '+{}'.format(retval)
     return retval
 
-def shareprice(value):
-	return "{:.2f}".format(value)
+def shareprice(value, **kwargs):
+    try:
+        value = float(value)
+    except TypeError:
+        return value
+    if 'profitloss' in kwargs and kwargs['profitloss'] and value >= 0:
+        return "{:+.2f}".format(value)
+    else:
+        return "{:.2f}".format(value)
 
 def percentage(value):
     return "{:+.1f}%".format(value)
