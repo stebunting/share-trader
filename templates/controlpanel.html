@@ -15,7 +15,7 @@
                         </a>
                     </h4>
                 </div>
-                <div id="collapseOne" class="panel-collapse collapse{% if panel == 1 %} in{% endif %}" role="tabpanel" aria-labelledby="headingOne">
+                <div id="collapseOne" class="panel-collapse collapse{% if panel == 0 %} in{% endif %}" role="tabpanel" aria-labelledby="headingOne">
                     <div class="panel-body">
                         <table class="table table-striped table-hover table-bordered table-condensed">
                             <thead>
@@ -30,7 +30,7 @@
                                 {% for row in portfolios %}<tr{% if row['id'] == session['portfolio'] %} class="warning"{% endif %}>
                                     <td>
                                         <form class="form-inline controlpanelinput" action="{{ url_for('controlpanel') }}" method="post">
-                                            <input type="hidden" name="panel" value="1">
+                                            <input type="hidden" name="panel" value="0">
                                             <input type="hidden" name="id" value="{{ row['id'] }}">
                                             <input type="text" class="form-control" maxlength="15" name="rename" value="{{ row['name'] }}">
                                             <input type="submit" class="btn btn-default{% if row['id'] == session['portfolio'] %} disabled{% endif %}" name="submit" value="Switch">
@@ -64,10 +64,10 @@
                         </a>
                     </h4>
                 </div>
-                <div id="collapseZero" class="panel-collapse collapse{% if panel == 0 %} in{% endif %}" role="tabpanel" aria-labelledby="headingZero">
+                <div id="collapseZero" class="panel-collapse collapse{% if panel == 1 %} in{% endif %}" role="tabpanel" aria-labelledby="headingZero">
                     <div class="panel-body">
                         <form class="form-horizontal" action="{{ url_for('controlpanel') }}" method="post">
-                            <input type="hidden" name="panel" value="0">
+                            <input type="hidden" name="panel" value="1">
                             <div class="form-group">
                                 <label for="email" class="col-md-4 control-label">E-mail Address</label>
                                 <div class="col-md-8">

@@ -97,6 +97,19 @@ def updateAssets():
 def index():
     # Get portfolio details and set last updated text to readable format
     portfolios = getPortfolio()
+    
+    # If portfolio variable added, change portfolio
+    if request.args.get('portfolio'):
+        try:
+            newportfolio = int(request.args.get('portfolio'))
+            for i in portfolios[0]:
+                if i['id'] == newportfolio:
+                    session['portfolio'] = newportfolio
+                    portfolios = getPortfolio()
+                    break
+        except ValueError:
+            pass
+        
     portfolio_index = portfolios[1]
     portfolios[0][portfolio_index]['lastupdated'] = portfolios[0][portfolio_index]['lastupdated'].strftime('%a %d %b @ %I:%M:%S%p')
     
@@ -771,7 +784,10 @@ def controlpanel():
                 conn.commit()
         
     # Open correct panel
-    panel = int(request.form.get('panel')) if request.form.get('panel') else 1
+    if request.method == 'GET':
+        panel = int(request.args.get('panel')) if request.args.get('panel') else 0
+    else:
+        panel = int(request.form.get('panel')) if request.form.get('panel') else 0
     
     # Get email address
     cursor.execute('SELECT email, dailyalert FROM users WHERE id=%s', session['user_id'])
@@ -786,16 +802,16 @@ def schedule():
     cursor.execute("SELECT id, email, dailyalert FROM users")
     users = cursor.fetchall()
     
-    # Prepare e-mail text
-    html = '<!DOCTYPE html><html lang="en"><head></head><body><p>Here\'s an update on your portfolio after today\'s trading.</p>'
-    plaintext = 'Here\'s an update on your portfolio after today\'s trading.\n'
-    
     # Loop over users
     for user in users:
+        # Prepare e-mail text
+        html = '<!DOCTYPE html><html lang="en"><head><style>body{font-family:Helvetica,Arial,sans-serif;}td,th{padding:1px 7px;text-align:right;}th{font-weight:bold;}h3{margin-bottom:5px;}p{margin-top:5px;}</style></head><body><p>Here\'s an update on your portfolio after today\'s trading.</p>'
+        plaintext = 'Here\'s an update on your portfolio after today\'s trading.\n'
+
         # Get all portfolios and shares
         cursor.execute('SELECT id, name FROM portfolios WHERE userid=%s', user['id'])
         portfolios = cursor.fetchall()
-        cursor.execute('SELECT portfolioid, epic, sellprice, value, profitloss, percentage FROM shares WHERE userid=%s AND status=1', user['id'])
+        cursor.execute('SELECT id, portfolioid, epic, target, stoploss, sellprice, value, profitloss, percentage FROM shares WHERE userid=%s AND status=1 ORDER BY epic ASC', user['id'])
         shares = cursor.fetchall()
         session['user_id'] = user['id']
         
@@ -805,22 +821,25 @@ def schedule():
             data = updateshareprices()
             content = json.loads(data.get_data())
             details = content[-1]
-            html += '<h3>Portfolio: {}</h3><p><b>Market Exposure:</b> {}<br /><b>Profit:</b> {} {}<br /><b>Daily Proft:</b> {} {}</p>'.format(portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
-            plaintext += '\nPortfolio: {}\nMarket Exposure: {}\nProfit: {} {}\nDaily Proft: {} {}\n'.format(portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
+            html += '<h3>Portfolio: <a href="https://share-trader.herokuapp.com/?portfolio={}">{}</a></h3><p><strong>Market Exposure:</strong> {}<br /><strong>Profit:</strong> {} ({})<br /><strong>Daily Proft:</strong> {} ({})</p><table><thead><tr><th>EPIC</th><th>Target</th><th>Stop Loss</th><th>Bid Price</th><th>Value</th><th colspan="2">Profit/Loss</th></tr></thead><tbody>'.format(portfolio['id'], portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
+            plaintext += '\nPortfolio: {}\nMarket Exposure: {}\nProfit: {} ({})\nDaily Proft: {} ({})\n'.format(portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
             for share in shares:
                 if share['portfolioid'] == session['portfolio']:
                     plaintext += '{}: {} {} {} {}\n'.format(share['epic'], shareprice(share['sellprice']), gbp(share['value']), gbp(share['profitloss'], profitloss=True), percentage(share['percentage']))
+                    html += '<tr><td><a href="https://share-trader.herokuapp.com/shares?submit=update&id={}">{}</a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(share['id'], share['epic'], shareprice(share['target']), shareprice(share['stoploss']), shareprice(share['sellprice']), gbp(share['value']), gbp(share['profitloss'], profitloss=True), percentage(share['percentage']))
+            html += '</tbody></table>'
             session.pop('portfolio', None)
-        html += '</body></html>'
+        plaintext += '\nTo stop receiving these updates, please update your settings at http://sharetrader.stevebunting.com/controlpanel?panel=1\n'
+        html += '<p>To stop receiving these updates, please update your <a href="http://sharetrader.stevebunting.com/controlpanel?panel=1">settings</a>.</p></body></html>'
         session.pop('user_id', None)
         
         # Send e-mail if requested
         if user['dailyalert'] == 1 and user['email'] != '':
             msg = MIMEMultipart('alternative')
-            msg.attach(MIMEText(html, 'html'))
             msg.attach(MIMEText(plaintext, 'plain'))
+            msg.attach(MIMEText(html, 'html'))
             msg['Subject'] = 'Stock portfolio update for {}'.format(dateFormat(datetime.datetime.now()))
-            msg['From'] = 'info@stevebunting.com'
+            msg['From'] = 'sharetrader@stevebunting.com'
             msg['To'] = user['email']
             server = smtplib.SMTP('smtp.stevebunting.com', 587)
             server.login(smtpuser, smtppassword)
