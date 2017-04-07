@@ -8,6 +8,15 @@ function gbp(value) {
     return value.toLocaleString('en-GB', {style: 'currency', currency: 'GBP'})
 }
 
+// Format number as shareprice
+function shareprice(value, profitloss=false) {
+    retval = value.toFixed(2)
+    if (profitloss == true && value >= 0) {
+        retval = '+' + retval
+    }
+    return retval
+}
+
 // Format number as percent with +/- and 1 decimal place
 function percent(value) {
     var symbol = '';
@@ -21,6 +30,7 @@ function percent(value) {
 function updateCellColours(ident) {
     var target = $(ident + 'target-edit').val();
     var stoploss = $(ident + 'stoploss-edit').val();
+    var sharegain = parseFloat($(ident + 'sharegain').text());
     var percentage = parseFloat($(ident + 'percentage').text());
     var bid = $(ident + 'bid').text();
     
@@ -36,12 +46,12 @@ function updateCellColours(ident) {
         $(ident + 'target').removeClass('success');
     };
     
-    if (percentage >= 20) {
-        $(ident + 'percentage').addClass('success');
-        $(ident + 'profitloss').addClass('success');
+    if (sharegain >= 0) {
+        $(ident + 'sharegain').removeClass('loss');
+        $(ident + 'sharegain').addClass('profit');
     } else {
-        $(ident + 'percentage').removeClass('success');
-        $(ident + 'profitloss').removeClass('success');
+        $(ident + 'sharegain').removeClass('profit');
+        $(ident + 'sharegain').addClass('loss');
     };
     
     if (percentage < 0) {
@@ -58,7 +68,8 @@ function updateRow(company) {
 
     // Update row
     var ident = '#' + company['id'] + '-' + company['epic'] + '-'
-    $(ident + 'bid').text(company['sellprice'].toFixed(2))
+    $(ident + 'sharegain').text(shareprice(company['sharegain'], profitloss=true))
+    $(ident + 'bid').text(shareprice(company['sellprice']))
     $(ident + 'value').text(gbp(company['value']))
     $(ident + 'profitloss').text(gbp(company['profitloss']))
     $(ident + 'percentage').text(percent(company['percentage']))
@@ -75,15 +86,11 @@ function updateTotals(company) {
     $('#percentage').text(percent(company['percentage']));
     
     if (company['dailyprofit'] > 0) {
-        if ($('#dailyprofit').hasClass('loss')) {
-            $('#dailyprofit').addClass('profit').removeClass('loss');
-            $('#dailypercent').addClass('profit').removeClass('loss');
-        };
+        $('#dailyprofit').addClass('profit').removeClass('loss');
+        $('#dailypercent').addClass('profit').removeClass('loss');
     } else {
-        if ($('#dailyprofit').hasClass('profit')) {
-            $('#dailyprofit').addClass('loss').removeClass('profit');
-            $('#dailyprofit').addClass('loss').removeClass('profit');
-        };
+        $('#dailyprofit').addClass('loss').removeClass('profit');
+        $('#dailypercent').addClass('loss').removeClass('profit');
     }
     $('#dailyprofit').text(gbp(company['dailyprofit']));
     $('#dailypercent').text(percent(company['dailypercent']));
@@ -188,7 +195,7 @@ $(function() {
                 success: function(val) {
                     var data = ident.split('-');
                     updateCellColours('#' + data[0] + '-' + data[1] + '-');
-                    $element.val(val.toFixed(2)).blur();
+                    $element.val(shareprice(val)).blur();
                 }
             });
         }
@@ -241,7 +248,7 @@ $(function() {
         if (parseFloat($('#buyprice').val()) > 0) {
             targetprice = parseFloat($('#buyprice').val()) * 1.2;
         }
-        $('#target').focus().val(targetprice.toFixed(2));
+        $('#target').focus().val(shareprice(targetprice));
     });
     
     // Share Page
@@ -249,9 +256,9 @@ $(function() {
     $('#stoplosscalculate').click(function() {
         var stoploss = 0;
         if (parseFloat($('#buyprice').val()) > 0) {
-            targetprice = parseFloat($('#buyprice').val()) * 0.9;
+            stoploss = parseFloat($('#buyprice').val()) * 0.9;
         }
-        $('#stoploss').focus().val(targetprice.toFixed(2));
+        $('#stoploss').focus().val(shareprice(stoploss));
     });
     
     // Share Page
@@ -261,7 +268,7 @@ $(function() {
         if (parseFloat($('#buyprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
             stampduty = parseInt($('#buyprice').val()) * parseInt($('#quantity').val()) * 0.00005;
         }
-        $('#stampduty').focus().val(stampduty.toFixed(2));
+        $('#stampduty').focus().val(shareprice(stampduty));
     });
     
     // Share Page
@@ -280,7 +287,7 @@ $(function() {
         if (buycost < 0) {
             buycost = 0;
         }
-        $('#buycost').focus().val(buycost.toFixed(2));
+        $('#buycost').focus().val(shareprice(buycost));
     });
     
     // Share Page
@@ -291,9 +298,9 @@ $(function() {
             sellprice += parseFloat($('#sellprice').val()) * 0.01 * parseInt($('#quantity').val());
         }
         if (parseFloat($('#selltradecost').val()) > 0) {
-            sellprice += parseFloat($('#selltradecost').val());
+            sellprice -= parseFloat($('#selltradecost').val());
         }
-        $('#value').focus().val(sellprice.toFixed(2));
+        $('#value').focus().val(shareprice(sellprice));
     });
     
     // Statement Page
@@ -308,7 +315,6 @@ $(function() {
         $('#newCash').modal('show');
         divPicker($('#cash_category').attr('data-epic'));
     }
-    console.log();
     if ($('#alertmsg').text() != '') {
         $('#newCash').modal('show');
     }

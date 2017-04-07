@@ -847,7 +847,7 @@ def schedule():
             server.close()
     return 'True'
 
-# Route to reset bidopen
+# Route to reset bidopen, scheduled for 5am every weekday
 @app.route('/resetbidopen')
 def resetbidopen():
     cursor.execute('UPDATE shares SET bidopen=sellprice WHERE status=1')
@@ -858,7 +858,7 @@ def resetbidopen():
 @app.route('/updateshareprices', methods=['GET', 'POST'])
 def updateshareprices():
     # Get all active share data
-    cursor.execute('SELECT id, epic, buyprice, quantity, stampduty, buytradecost, selltradecost, value, dividends, profitloss, percentage FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
+    cursor.execute('SELECT id, epic, buyprice, quantity, stampduty, buytradecost, bidopen, selltradecost, value, dividends, profitloss, percentage FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     sharedata = cursor.fetchall()
     
     # Calculate new row values based on new quote data
@@ -871,7 +871,8 @@ def updateshareprices():
         if sharedata[i]['sellprice'] == False:
             return ''
         
-        # Calculate value, profitloss, percentage
+        # Calculate share gain, value, profitloss, percentage
+        sharedata[i]['sharegain'] = sharedata[i]['sellprice'] - sharedata[i]['bidopen']
         sharedata[i]['value'] = (sharedata[i]['sellprice'] * sharedata[i]['quantity'] * 0.01)
         costs = sharedata[i]['buytradecost'] + sharedata[i]['selltradecost'] + sharedata[i]['stampduty']
         sharedata[i]['profitloss'] = sharedata[i]['value'] - (sharedata[i]['buyprice'] * sharedata[i]['quantity'] * 0.01) - costs + sharedata[i]['dividends']
