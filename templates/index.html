@@ -83,8 +83,8 @@
                 <td id="{{ row['id'] }}-{{ row['epic']}}-value" class="vert-middle text-right">{{ (row['sellprice'] * row['quantity'] * 0.01)|gbp }}</td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-profitloss" class="vert-middle text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}{{ row['profitloss']|gbp }}</td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-percentage" class="vert-middle text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}{{ row['percentage']|percentage }}</td>
-            </tr>{% endfor %}{% else %}<td class="nodata" colspan="10">No shares yet</td>{% endif %}
+            </tr>{% endfor %}{% else %}<td class="nodata" colspan="11">No shares yet</td>{% endif %}
         </tbody>
-    </table>
-    <script>refreshPrices();</script>
+    </table>{% if sharedata %}
+    <script>refreshPrices();</script>{% endif %}
 {% endblock %}

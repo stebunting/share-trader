@@ -38,7 +38,6 @@ except ImportError:
 locale.setlocale(locale.LC_ALL, loc)
 
 app = Flask(__name__)
-
 app.config['MYSQL_DATABASE_HOST'] = mysqlhost
 app.config['MYSQL_DATABASE_DB'] = mysqldb
 app.config['MYSQL_DATABASE_USER'] = mysqluser
@@ -541,10 +540,17 @@ def log():
 @app.route('/charts', methods=['GET'])
 @login_required
 def charts():
+    portfolios = getPortfolio()
+    portfolio_index = portfolios[1]
+    registerdate = portfolios[0][portfolio_index]['registerdate']
+    
     # Set default values for start and end date
     today = datetime.datetime.now()
+    startdate = today + datetime.timedelta(days=-365)
+    if startdate < registerdate:
+        startdate = registerdate
     dates = {
-        'start': (today + datetime.timedelta(days=-365)),
+        'start': startdate,
         'end': today
     }
     
@@ -637,7 +643,7 @@ def charts():
         chart.x_value_formatter = lambda x: x_all[x]['label']
     chart_data = chart.render_data_uri()
     
-    return render_template('charts.html', portfolios=getPortfolio()[0], chart_data=chart_data, dates=dates)
+    return render_template('charts.html', portfolios=portfolios[0], chart_data=chart_data, dates=dates)
 
 # Route for User Control Panel
 @app.route('/controlpanel', methods=['GET', 'POST'])
@@ -722,6 +728,7 @@ def controlpanel():
                 if pwd_context.verify(request.form.get('changeusername_password'), cursor.fetchone()['password']):
                     try:
                         cursor.execute('UPDATE users SET username=%s WHERE id=%s', [request.form.get('changeusername_new'), session['user_id']])
+                        session['username'] = request.form.get('changeusername_new')
                         conn.commit()
                         flash('Username changed!', 'success')
                     except:
@@ -769,11 +776,12 @@ def controlpanel():
                 else:
                     flash('You got your old password wrong!', 'danger')
         
-        # Change Settings
+        # Change Daily Alert
         elif request.form.get('submit') == 'Change E-Mail':
             # Validate input
             valid = True
             email = request.form.get('email')
+            print(request.form.get('dailyalert'))
             dailyalert = 1 if request.form.get('dailyalert') == 'on' else 0
             if email:
                 if '@' not in email or '.' not in email:
@@ -1019,7 +1027,7 @@ def register():
             session['user_id'] = id
             session['username'] = request.form.get('reg_username')
             session['portfolio'] = lastportfolioid
-            flash("Registered! Hello {}!".format('username'), 'success')
+            flash("Registered! Hello {}!".format(request.form.get('reg_username')), 'success')
     
     if not valid:
         return render_template('register.html', reg_username=reg_username)

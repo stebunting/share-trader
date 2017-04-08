@@ -85,7 +85,7 @@ function updateTotals(company) {
     $('#profitloss').text(gbp(company['profitloss']));
     $('#percentage').text(percent(company['percentage']));
     
-    if (company['dailyprofit'] > 0) {
+    if (company['dailyprofit'] >= 0) {
         $('#dailyprofit').addClass('profit').removeClass('loss');
         $('#dailypercent').addClass('profit').removeClass('loss');
     } else {
