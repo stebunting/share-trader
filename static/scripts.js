@@ -134,7 +134,7 @@ function refreshPrices() {
 function divPicker(epic) {
     if ($('#cash_category').val() == '2') {
         var $options = '';
-        $.getJSON('/getepics').done(function() {
+        $.getJSON('/getepics').done(function(data) {
             $.each(data, function(key, val) {
                 $options += '<option value="' + val['epic'] + '"'
                 if (epic == val['epic']) {

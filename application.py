@@ -363,7 +363,7 @@ def statement():
                 dates['end'] = date
     
     # If new cash transaction posted
-    if request.method == 'POST':
+    if request.method == 'POST' and request.form.get('submit') != 'delete':
         
         valid = True
         prefill = {
@@ -435,7 +435,16 @@ def statement():
             prefill = None
             cash_category = None
     
-    elif request.method == 'GET':
+    elif request.method == 'POST' and request.form.get('submit') == 'delete':
+        cursor.execute('DELETE FROM cash WHERE id=%s AND userid=%s AND portfolioid=%s', [request.form.get('id'), session['user_id'], session['portfolio']])
+        cursor.execute('UPDATE portfolios SET cash=cash-%s WHERE userid=%s AND id=%s', [request.form.get('value'), session['user_id'], session['portfolio']])
+        if request.form.get('type') == '1':
+            cursor.execute('UPDATE portfolios SET capital=capital-%s WHERE userid=%s AND id=%s', [request.form.get('value'), session['user_id'], session['portfolio']])
+        elif request.form.get('type') == '2':
+            cursor.execute('UPDATE shares SET dividends=dividends-%s WHERE id=%s AND userid=%s AND portfolioid=%s', [request.form.get('value'), request.form.get('shareid'), session['user_id'], session['portfolio']])
+        prefill = None
+    
+    else:
         prefill = None
     
     # Get cash categories
@@ -448,7 +457,7 @@ def statement():
     buydata = cursor.fetchall()
     for row in buydata:
         statement.append({
-            'id': row['id'],
+            'linkid': row['id'],
             'date': row['buydate'],
             'transaction': row['company'].title(),
             'debit': row['buycost'],
@@ -461,7 +470,7 @@ def statement():
     selldata = cursor.fetchall()
     for row in selldata:
         statement.append({
-            'id': row['id'],
+            'linkid': row['id'],
             'date': row['selldate'],
             'transaction': row['company'].title(),
             'debit': None,
@@ -470,11 +479,12 @@ def statement():
         })
     
     # Get cash transactions from database and add to statement list
-    cursor.execute('SELECT shareid, date, category, notes, categoryid, amount FROM cash INNER JOIN cash_categories ON cash.categoryid=cash_categories.id WHERE userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
+    cursor.execute('SELECT cash.id, shareid, date, category, notes, categoryid, amount FROM cash INNER JOIN cash_categories ON cash.categoryid=cash_categories.id WHERE userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
     cashdata = cursor.fetchall()
     for row in cashdata:
         transaction = {
-            'id': row['shareid'],
+            'cashid': row['id'],
+            'linkid': row['shareid'],
             'date': row['date'],
             'transaction': 'Cash: {}'.format(row['category']),
             'debit': None,
@@ -523,7 +533,10 @@ def log():
             log[i]['percentage'] = (100 * ((log[i]['exposure'] + log[i]['cash']) / log[i]['capital'])) - 100
         if i > 0:
             log[i - 1]['dailyprofit'] = previous_exp - log[i]['exposure']
-            log[i - 1]['dailypercent'] = 100 * (log[i - 1]['dailyprofit'] / (previous_exp - log[i - 1]['dailyprofit']))
+            if previous_exp - log[i - 1]['dailyprofit'] != 0:
+                log[i - 1]['dailypercent'] = 100 * (log[i - 1]['dailyprofit'] / (previous_exp - log[i - 1]['dailyprofit']))
+            else:
+                log[i - 1]['dailypercent'] = 0
         previous_exp = log[i]['exposure']
     
     # Recalculate all rows capital/cash in logging to fix errors
@@ -656,6 +669,9 @@ def controlpanel():
         # Delete Portfolio
         if request.form.get('submit') == 'Delete':
             cursor.execute('DELETE FROM portfolios WHERE id=%s AND userid=%s', [request.form.get('id'), session['user_id']])
+            cursor.execute('DELETE FROM log WHERE portfolioid=%s AND userid=%s', [request.form.get('id'), session['user_id']])
+            cursor.execute('DELETE FROM cash WHERE portfolioid=%s AND userid=%s', [request.form.get('id'), session['user_id']])
+            cursor.execute('DELETE FROM shares WHERE portfolioid=%s AND userid=%s', [request.form.get('id'), session['user_id']])
             conn.commit()
         
         # Switch Portfolio

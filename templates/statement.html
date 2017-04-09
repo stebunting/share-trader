@@ -80,16 +80,28 @@
                 <th>Debit</th>
                 <th>Credit</th>
                 <th>Balance</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
             {% for row in statement %}{% if row['date'] >= dates['start'] and row ['date'] <= dates['end'] %}<tr{% if row['type'] == 'buy' or row['type'] == 'sell' or row['type'] == 2 %} class="warning"{% endif %}>
                 <td>{{ row['date']|dateFormat }}</td>
-                <td>{% if row['type'] == 'buy' or row['type'] == 'sell' or row['type'] == 2 %}<a href="{{ url_for('shares') }}?id={{ row['id'] }}">{% endif %}{{ row['transaction'] }}{% if row['type'] == 'buy' or row['type'] == 'sell' or row['type'] == 2 %}</a>{% endif %}{% if row['notes'] %}
+                <td>{% if row['type'] == 'buy' or row['type'] == 'sell' or row['type'] == 2 %}<a href="{{ url_for('shares') }}?id={{ row['linkid'] }}">{% endif %}{{ row['transaction'] }}{% if row['type'] == 'buy' or row['type'] == 'sell' or row['type'] == 2 %}</a>{% endif %}{% if row['notes'] %}
                 <p class="help-block">{{ row['notes'] }}</p>{% endif %}</td>
                 <td>{% if row['debit'] %}{{ row['debit']|gbp }}{% endif %}</td>
                 <td>{% if row['credit'] %}{{ row['credit']|gbp }}{% endif %}</td>
                 <td>{{ row['balance']|gbp }}</td>
+                <td>{% if row['cashid'] %}
+                    <form action="{{ url_for('statement') }}" method="post">
+                        <input type="hidden" name="id" value="{{ row['cashid'] }}">
+                        <input type="hidden" name="type" value="{{ row['type'] }}">
+                        <input type="hidden" name="shareid" value="{{ row['linkid'] }}">
+                        <input type="hidden" name="value" value="{{ (-1 * row['debit']|float) + row['credit']|float }}">
+                        <button type="submit" name="submit" value="delete" class="btn btn-default btn-xs" title="Delete transaction">
+                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                        </button>
+                    </form>
+                {% endif %}</td>
             </tr>{% endif %}{% endfor %}
         </tbody>
     </table>
