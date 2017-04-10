@@ -124,24 +124,22 @@ def index():
     data = cursor.fetchall()
     if len(data) > 1:
         lastexposure = data[1]['exposure']
+        lastcash = data[1]['cash']
     else:
         lastexposure = 0
-    
-    cursor.execute('SELECT SUM(x) AS money FROM (SELECT SUM(buycost) x FROM shares WHERE buydate>=CURDATE() AND buydate<=NOW() AND userid=%s AND portfolioid=%s UNION SELECT SUM(value) * -1 x FROM shares WHERE selldate>=CURDATE() AND selldate<=NOW() AND status=0 AND userid=%s AND portfolioid=%s) s',
-        [session['user_id'], session['portfolio'], session['user_id'], session['portfolio']])
-    todaysbuys = cursor.fetchone()['money']
-    todaysbuys = todaysbuys if todaysbuys else 0
     
     # Calculate portfolio details
     # Market exposure, total sale cost (exposure - costs), daily performance
     portfoliodetails = {
         'exposure': 0,
-        'sale_costs': 0
+        'sale_costs': 0,
+        'dailyprofit': 0
     }
     for row in sharedata:
         portfoliodetails['exposure'] += row['sellprice'] * row['quantity'] * 0.01
         portfoliodetails['sale_costs'] += row['selltradecost']
-    portfoliodetails['dailyprofit'] = portfoliodetails['exposure'] - lastexposure - todaysbuys
+        row['dailygain'] = row['sellprice'] - row['bidopen']
+    portfoliodetails['dailyprofit'] = portfoliodetails['exposure'] + portfolios[0][portfolio_index]['cash'] - lastexposure - lastcash
     if portfoliodetails['exposure'] != 0:
         portfoliodetails['dailypercent'] = 100 * portfoliodetails['dailyprofit'] / portfoliodetails['exposure']
     else:
@@ -265,6 +263,12 @@ def shares():
                 inputValidation = False
                 flash('Sale date required if closing a trade', 'danger')
             
+            if submit == 'submit':
+                quoteLogin()
+                share['bidopen'] = quote(share['epic'])
+            else:
+                share['bidopen'] = None
+            
             # If input validated, try to write to database
             if inputValidation:
                 goToIndex = 0
@@ -272,11 +276,11 @@ def shares():
                         share['buyprice'], share['quantity'], share['stampduty'], share['buytradecost'],
                         share['buycost'], share['target'], share['stoploss'], share['selldate'], 
                         share['sellprice'], share['selltradecost'], share['value'], share['profitloss'],
-                        share['percentage'], share['comment']]
+                        share['percentage'], share['comment'], share['bidopen']]
         
                 # If entering a new entry
                 if submit == 'submit':
-                    goToIndex = cursor.execute('INSERT INTO shares (userid, portfolioid, epic, status, buydate, buyprice, quantity, stampduty, buytradecost, buycost, target, stoploss, selldate, sellprice, selltradecost, value, profitloss, percentage, comment) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', data)
+                    goToIndex = cursor.execute('INSERT INTO shares (userid, portfolioid, epic, status, buydate, buyprice, quantity, stampduty, buytradecost, buycost, target, stoploss, selldate, sellprice, selltradecost, value, profitloss, percentage, comment, bidopen) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', data)
                     conn.commit()
                     
                 # If updating an old entry
@@ -957,11 +961,9 @@ def updateshareprices():
     
     # Get log from 2 entries ago and todays buys to calculate daily performance
     cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 2', [session['user_id'], session['portfolio']])
-    lastexposure = cursor.fetchall()[1]['exposure'] if cursor.rowcount == 2 else 0
-    cursor.execute('SELECT SUM(x) AS money FROM (SELECT SUM(buycost) x FROM shares WHERE buydate>=CURDATE() AND buydate<=NOW() AND userid=%s AND portfolioid=%s UNION SELECT SUM(value) * -1 x FROM shares WHERE selldate>=CURDATE() AND selldate<=NOW() AND status=0 AND userid=%s AND portfolioid=%s) s',
-        [session['user_id'], session['portfolio'], session['user_id'], session['portfolio']])
-    todaysbuys = cursor.fetchone()['money']
-    todaysbuys = todaysbuys if todaysbuys else 0
+    prevdata = cursor.fetchall()[1]
+    lastexposure = prevdata['exposure'] if cursor.rowcount == 2 else 0
+    lastcash = prevdata['cash'] if cursor.rowcount == 2 else 0
     
     # Calculate master details
     details = {
@@ -969,11 +971,11 @@ def updateshareprices():
         'salevalue': exposure + salevaluedelta,
         'profitloss': exposure + salevaluedelta + assets['cash'] - assets['capital'],
         'percentage': 0,
-        'dailyprofit': exposure - lastexposure - todaysbuys,
+        'dailyprofit': exposure + assets['cash'] - lastexposure - lastcash,
         'dailypercent': 0
     }
     if assets['capital'] != 0: details['percentage'] = (100 * ((exposure + salevaluedelta + assets['cash']) / assets['capital'])) - 100
-    if exposure != 0: details['dailypercent'] = 100 * (details['dailyprofit'] / exposure)
+    if exposure != 0: details['dailypercent'] = 100 * (details['dailyprofit'] / (exposure + assets['cash']))
     
     return jsonify([sharedata, details])
 
