@@ -54,12 +54,12 @@ function updateCellColours(ident) {
         $(ident + 'sharegain').addClass('loss');
     };
     
-    if (percentage < 0) {
-        $(ident + 'percentage').addClass('danger');
-        $(ident + 'profitloss').addClass('danger');
-    } else {
+    if (percentage >= 0) {
         $(ident + 'percentage').removeClass('danger');
         $(ident + 'profitloss').removeClass('danger');
+    } else {
+        $(ident + 'percentage').addClass('danger');
+        $(ident + 'profitloss').addClass('danger');
     };
 }
 

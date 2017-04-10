@@ -22,11 +22,11 @@
             </tr>
         </thead>
     	<tbody>
-        	{% for item in log %}<tr>
+        	{% if log|length > 0 %}{% for item in log %}<tr>
                 <td class="text-right">{{ item['date']|dateFormat }}</td>
                 <td class="text-right">{{ item['exposure']|gbp }}</td>
-                <td class="text-right{% if item['dailyprofit'] or item['dailyprofit'] == 0 %} {% if item['dailyprofit'] < 0 %}loss{% else %}profit{% endif %}">{{ item['dailyprofit']|gbp }}{% else %}">{% endif %}</td>
-                <td class="text-right{% if item['dailypercent'] or item['dailypercent'] == 0 %} {% if item['dailypercent'] < 0 %}loss{% else %}profit{% endif %}">{{ item['dailypercent']|percentage }}{% else %}">{% endif %}</td>
+                <td class="text-right{% if item['dailyprofit'] or item['dailyprofit'] == 0 %} {% if item['dailyprofit'] < 0 %}loss{% else %}profit{% endif %}">{{ item['dailyprofit']|gbp }}{% else %}">-{% endif %}</td>
+                <td class="text-right{% if item['dailypercent'] or item['dailypercent'] == 0 %} {% if item['dailypercent'] < 0 %}loss{% else %}profit{% endif %}">{{ item['dailypercent']|percentage }}{% else %}">-{% endif %}</td>
                 <td class="text-right {% if item['percentage'] < 0 %}loss{% else %}profit{% endif %}">{{ item['profitloss']|gbp }}</td>
                 <td class="text-right {% if item['percentage'] < 0 %}loss{% else %}profit{% endif %}">{{ item['percentage']|percentage }}</td>
                 <td class="text-right {% if (item['percentage'] - item['ftse100percent']) < 0 %}loss{% else %}profit{% endif %}">{{ (item['percentage'] - item['ftse100percent'])|percentage }}</td>
@@ -34,7 +34,7 @@
                 <td class="text-right">{{ item['cash']|gbp }}</td>
                 <td class="text-right">{{ item['ftse100']|shareprice }}</td>
                 <td class="text-right {% if item['ftse100percent'] < 0 %}loss{% else %}profit{% endif %}">{{ item['ftse100percent']|percentage }}</td>
-            </tr>{% endfor %}
+            </tr>{% endfor %}{% else %}<tr><td class="nodata" colspan="11">Log is empty</td></tr>{% endif %}
         </tbody>
     </table>
 {% endblock %}

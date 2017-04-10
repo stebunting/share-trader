@@ -92,7 +92,7 @@ def login_required(f):
 # Function to verify date
 def verifyDate(test):
     try:
-        verified = datetime.datetime.strptime(str(test), "%Y-%m-%d")
+        verified = datetime.datetime.strptime(str(test).split(' ')[0], "%Y-%m-%d")
         return verified
     except:
         return False

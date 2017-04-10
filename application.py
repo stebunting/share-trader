@@ -56,7 +56,10 @@ app.jinja_env.filters['dateFormatISO'] = dateFormatISO
 # Connect to MySQL database
 conn = mysql.connect()
 cursor = conn.cursor()
-cursor.execute("SET time_zone='Europe/Stockholm'")
+try:
+    cursor.execute("SET time_zone='Europe/Stockholm'")
+except:
+    pass
 
 # Function to get portfolio data, required for nav bar on every page
 # Returns array with index of current selected portfolio
@@ -194,24 +197,24 @@ def shares():
                 'epic': request.form.get('epic').upper(),
                 'company': request.form.get('company'),
                 'dividends': 0,
-                'status': request.form.get('status'),
+                'status': int(request.form.get('status')),
                 'comment': request.form.get('comment')
             }
             if request.form.get('dividends'):
                 share['dividends'] = float(request.form.get('dividends'))
         
             # Dictionary of posted values to check, will be added to share dict
-            # {field: [variable, type, require user entry, default]}
+            # {field: [variable, type, require user entry, default, message]}
             values = {
-                'buydate': [request.form.get('buydate'), 'date', False, datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')],
-                'selldate': [request.form.get('selldate'), 'date', False, None],
-                'quantity': [request.form.get('quantity'), 'int', True, 0],
-                'stampduty': [request.form.get('stampduty'), 'float', False, 0],
-                'buytradecost': [request.form.get('buytradecost'), 'float', False, 0],
-                'sellprice': [request.form.get('sellprice'), 'float', False, 0],
-                'selltradecost': [request.form.get('selltradecost'), 'float', False, 0],
-                'value': [request.form.get('value'), 'float', False, 0],
-                'buyprice': [request.form.get('buyprice'), 'float', True, 0]
+                'buydate': [request.form.get('buydate'), 'date', False, datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'), ''],
+                'selldate': [request.form.get('selldate'), 'date', False, None, ''],
+                'quantity': [request.form.get('quantity'), 'int', True, 0, 'Quantity required'],
+                'stampduty': [request.form.get('stampduty'), 'float', False, 0, ''],
+                'buytradecost': [request.form.get('buytradecost'), 'float', False, 0, ''],
+                'sellprice': [request.form.get('sellprice'), 'float', False, 0, ''],
+                'selltradecost': [request.form.get('selltradecost'), 'float', False, 0, ''],
+                'value': [request.form.get('value'), 'float', False, 0, ''],
+                'buyprice': [request.form.get('buyprice'), 'float', True, 0, 'Buy price required']
             }
         
             # Look through values and check that required items are correct
@@ -231,6 +234,7 @@ def shares():
                     # If input required for this field, input validation fails here
                     share[key] = val[3]
                     if val[2]:
+                        flash(val[4], 'danger')
                         inputValidation = False
         
             # Dictionary of values to check with defaults that depend on the last step
@@ -253,8 +257,13 @@ def shares():
                         share[key] = 0
             
             share['profitloss'] = share['value'] - share['buycost']
-            share['percentage'] = ((10000 * (share['value'] - share['stampduty'] - share['buytradecost'] - share['selltradecost'] + share['dividends']) / (share['buyprice'] * share['quantity'])) - 100)
-            print(share['profitloss'])
+            if share['buyprice'] * share['quantity'] != 0:
+                share['percentage'] = ((10000 * (share['value'] - share['stampduty'] - share['buytradecost'] - share['selltradecost'] + share['dividends']) / (share['buyprice'] * share['quantity'])) - 100)
+            
+            if share['status'] == 0 and not verifyDate(share['selldate']):
+                share['status'] = 1
+                inputValidation = False
+                flash('Sale date required if closing a trade', 'danger')
             
             # If input validated, try to write to database
             if inputValidation:
@@ -281,9 +290,16 @@ def shares():
                 # If entry succeeded, go to index else go back to edit page
                 if goToIndex == 1:
                     return redirect(url_for('index'))
-                    
+    
     # Verify submit/id and get share data from database if updating
-    if request.args.get('submit') != 'submit':
+    updating = True           
+    try:
+        id = share['id']
+        if id:
+            submit = 'update'
+    except:
+        updating = False
+    if request.args.get('submit') != 'submit' and not updating:
         submit = 'update'
         try:
             id = int(request.args.get('id'))
@@ -298,7 +314,7 @@ def shares():
             id = share['id']
         else:
             submit = 'submit'
-    else:
+    elif not updating:
         submit = 'submit'
         id = None
     
@@ -309,7 +325,6 @@ def shares():
     data = cursor.fetchall()
     nav['numEntries'] = cursor.rowcount
     nav['lastid'] = 0 if nav['numEntries'] == 0 else data[-1]['id']
-    
     
     # Set some default values
     if submit == 'submit':
@@ -341,12 +356,18 @@ def shares():
 @app.route('/statement', methods=['GET', 'POST'])
 @login_required
 def statement():
+    portfolios = getPortfolio()
+    portfolio_index = portfolios[1]
+    registerdate = portfolios[0][portfolio_index]['registerdate']
     msg = []
     
     # Set default values for start and end date
-    today = datetime.datetime.now()
+    today = datetime.datetime.today()
+    startdate = today + datetime.timedelta(days=-365)
+    if startdate < registerdate:
+        startdate = registerdate.replace(hour=0, minute=0, second=0, microsecond=0)
     dates = {
-        'start': today + datetime.timedelta(days=-365),
+        'start': startdate,
         'end': today
     }
     
@@ -509,7 +530,7 @@ def statement():
         balance = row['balance']
     
     date = datetime.datetime.now().strftime("%Y-%m-%d")
-    return render_template('statement.html', prefill=prefill, cash_categories=cash_categories, statement=statement, portfolios=getPortfolio()[0], date=date, msg=msg, dates=dates)
+    return render_template('statement.html', prefill=prefill, cash_categories=cash_categories, statement=statement, portfolios=portfolios[0], date=date, msg=msg, dates=dates)
 
 # Route for Log Page
 @app.route('/log', methods=['GET', 'POST'])
@@ -532,12 +553,13 @@ def log():
         else:
             log[i]['percentage'] = (100 * ((log[i]['exposure'] + log[i]['cash']) / log[i]['capital'])) - 100
         if i > 0:
-            log[i - 1]['dailyprofit'] = previous_exp - log[i]['exposure']
+            log[i - 1]['dailyprofit'] = previous_exp + previous_cash - log[i]['exposure'] - log[i]['cash']
             if previous_exp - log[i - 1]['dailyprofit'] != 0:
                 log[i - 1]['dailypercent'] = 100 * (log[i - 1]['dailyprofit'] / (previous_exp - log[i - 1]['dailyprofit']))
             else:
-                log[i - 1]['dailypercent'] = 0
+                log[i - 1]['dailypercent'] = None
         previous_exp = log[i]['exposure']
+        previous_cash = log[i]['cash']
     
     # Recalculate all rows capital/cash in logging to fix errors
     if request.method == 'POST' and request.form.get('submit') == 'Recalculate':
@@ -558,10 +580,10 @@ def charts():
     registerdate = portfolios[0][portfolio_index]['registerdate']
     
     # Set default values for start and end date
-    today = datetime.datetime.now()
+    today = datetime.datetime.today()
     startdate = today + datetime.timedelta(days=-365)
     if startdate < registerdate:
-        startdate = registerdate
+        startdate = registerdate.replace(hour=0, minute=0, second=0, microsecond=0)
     dates = {
         'start': startdate,
         'end': today

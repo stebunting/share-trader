@@ -72,8 +72,8 @@
         </thead>
         <tbody>
             {% if sharedata %}{% for row in sharedata %}{% set dailygain = row['sellprice'] - row['bidopen'] %}<tr>
-                <td id="{{ row['id'] }}-{{ row['epic']}}-epic" class="text-right"><a href="{{ url_for('shares') }}?submit=update&id={{ row['id'] }}">{{ row['epic'] }}</a></td>
-                <td id="{{ row['id'] }}-{{ row['epic']}}-company" class="text-left"><a href="{{ url_for('shares') }}?submit=update&id={{ row['id'] }}">{% filter title %}{{ row['company'].strip() }}{% endfilter %}</a></td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-epic" class="vert-middle text-right"><a href="{{ url_for('shares') }}?submit=update&id={{ row['id'] }}">{{ row['epic'] }}</a></td>
+                <td id="{{ row['id'] }}-{{ row['epic']}}-company" class="vert-middle text-left"><a href="{{ url_for('shares') }}?submit=update&id={{ row['id'] }}">{% filter title %}{{ row['company'].strip() }}{% endfilter %}</a></td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-buyprice" class="vert-middle text-right">{{ row['buyprice']|shareprice }}</td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-quantity" class="vert-middle text-right">{{ row['quantity'] }}</td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-target" class="vert-middle text-right{% if row['target'] <= row['sellprice'] %} success">{% else %}">{% endif %}<input type="text" class="indexform targetinput form-control" name="{{ row['id'] }}-{{ row['epic']}}-targetedit" id="{{ row['id'] }}-{{ row['epic']}}-target-edit" value="{{ row['target']|shareprice }}"></td>

@@ -97,11 +97,11 @@
                             <label class="control-label col-md-3" for="statusopen">Status</label>
                             <div class="col-md-9">
                                 <label class="radio inline col-md-3">
-                                    <input type="radio" name="status" id="statusopen" value="1" {% if share['status'] != 0|int %}checked="checked"{% endif %}>
+                                    <input type="radio" name="status" id="statusopen" value="1" {% if share['status'] != 0 %}checked="checked"{% endif %}>
                                     Open
                                 </label>
                                 <label class="radio inline col-md-3">
-                                    <input type="radio" name="status" id="statusclosed" value="0" {% if share['status'] == 0|int %}checked="checked"{% endif %}>
+                                    <input type="radio" name="status" id="statusclosed" value="0" {% if share['status'] == 0 %}checked="checked"{% endif %}>
                                     Closed
                                 </label>
                             </div>
@@ -133,7 +133,7 @@
                             <label class="control-label col-md-4" for="buyprice">Purchase Price</label>
                             <div class="col-md-8">
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="buyprice" name="buyprice" placeholder="Price" value="{% if method != 'submit' or share['buyprice'] %}{{ share['buyprice'] }}{% endif %}" {% if submit == 'update' %}readonly{% endif %}>
+                                    <input type="text" class="form-control" id="buyprice" name="buyprice" placeholder="Price" value="{% if submit != 'submit' or share['buyprice'] %}{{ share['buyprice']|shareprice }}{% endif %}" {% if submit == 'update' %}readonly{% endif %}>
                                     <span class="input-group-addon">p</span>
                                 </div>
                             </div>
@@ -141,7 +141,7 @@
                         <div class="form-group">
                             <label class="control-label col-md-4" for="quantity">Quantity</label>
                             <div class="col-md-8">
-                                <input type="text" class="form-control" id="quantity" name="quantity" placeholder="Quantity" {% if method != 'submit' and share['quantity'] %}value="{{ share['quantity'] }}"{% endif %} {% if submit == 'update' %}readonly{% endif %}>
+                                <input type="text" class="form-control" id="quantity" name="quantity" placeholder="Quantity" {% if submit != 'submit' and share['quantity'] %}value="{{ share['quantity'] }}"{% endif %} {% if submit == 'update' %}readonly{% endif %}>
                             </div>
                         </div>
                         <div class="form-group">
@@ -149,7 +149,7 @@
                             <div class="col-md-8">
                                 <div class="input-group">
                                     <span class="input-group-addon">£</span>
-                                    <input type="text" class="form-control" id="stampduty" name="stampduty" placeholder="Stamp Duty" value="{% if method != 'submit' or share['stampduty'] %}{{ share['stampduty'] }}{% endif %}" {% if submit == 'update' %}readonly{% endif %}>
+                                    <input type="text" class="form-control" id="stampduty" name="stampduty" placeholder="Stamp Duty" value="{% if submit != 'submit' or share['stampduty'] %}{{ share['stampduty']|shareprice }}{% endif %}" {% if submit == 'update' %}readonly{% endif %}>
                                     <div class="input-group-btn">
                                         <button class="btn btn-default" id="stampdutycalculate" type="button">=</button>
                                     </div>
@@ -161,7 +161,7 @@
                             <div class="col-md-8">
                                 <div class="input-group">
                                     <span class="input-group-addon">£</span>
-                                    <input type="text" class="form-control" id="buytradecost" name="buytradecost" placeholder="Trade Cost" value="{% if method != 'submit' or share['buytradecost'] %}{{ share['buytradecost'] }}{% endif %}" {% if submit == 'update' %}readonly{% endif %}>
+                                    <input type="text" class="form-control" id="buytradecost" name="buytradecost" placeholder="Trade Cost" value="{% if submit != 'submit' or share['buytradecost'] %}{{ share['buytradecost']|shareprice }}{% endif %}" {% if submit == 'update' %}readonly{% endif %}>
                                 </div>
                             </div>
                         </div>
@@ -170,7 +170,7 @@
                             <div class="col-md-8">
                                 <div class="input-group">
                                     <span class="input-group-addon">£</span>
-                                    <input type="text" class="form-control" id="buycost" name="buycost" placeholder="Total Cost" value="{% if method != 'submit' or share['buycost'] %}{{ share['buycost'] }}{% endif %}" {% if submit == 'update' %}readonly{% endif %}>
+                                    <input type="text" class="form-control" id="buycost" name="buycost" placeholder="Total Cost" value="{% if submit != 'submit' or share['buycost'] %}{{ share['buycost']|shareprice }}{% endif %}" {% if submit == 'update' %}readonly{% endif %}>
                                     <div class="input-group-btn">
                                         <button class="btn btn-default" id="buycostcalculate" type="button">=</button>
                                     </div>
@@ -189,7 +189,7 @@
                             <label class="control-label col-md-4" for="target">Target Price</label>
                             <div class="col-md-8">
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="target" name="target" placeholder="Target Price" value="{% if method != 'submit' and share['target'] %}{{ share['target'] }}{% endif %}" {% if share['status'] == 0 %}readonly{% endif %}>
+                                    <input type="text" class="form-control" id="target" name="target" placeholder="Target Price" value="{% if submit != 'submit' and share['target'] %}{{ share['target']|shareprice }}{% endif %}" {% if share['status'] == 0 %}readonly{% endif %}>
                                     <span class="input-group-addon">p</span>
                                     <div class="input-group-btn">
                                         <button class="btn btn-default" id="targetcalculate" type="button">20%</button>
@@ -201,7 +201,7 @@
                             <label class="control-label col-md-4" for="stoploss">Stop Loss</label>
                             <div class="col-md-8">
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="stoploss" name="stoploss" placeholder="Stop Loss" value="{% if method != 'submit' and share['stoploss'] %}{{ share['stoploss'] }}{% endif %}" {% if share['status'] == 0 %}readonly{% endif %}>
+                                    <input type="text" class="form-control" id="stoploss" name="stoploss" placeholder="Stop Loss" value="{% if submit != 'submit' and share['stoploss'] %}{{ share['stoploss']|shareprice }}{% endif %}" {% if share['status'] == 0 %}readonly{% endif %}>
                                     <span class="input-group-addon">p</span>
                                     <div class="input-group-btn">
                                         <button class="btn btn-default" id="stoplosscalculate" type="button">10%</button>
@@ -245,7 +245,7 @@
                             <label class="control-label col-md-4" for="sellprice">Sale Price</label>
                             <div class="col-md-8">
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="sellprice" name="sellprice" placeholder="Sale Price" value="{% if submit != 'submit' or share['sellprice'] %}{{ share['sellprice'] }}{% endif %}" {% if share['status'] == 0 %}readonly{% endif %}>
+                                    <input type="text" class="form-control" id="sellprice" name="sellprice" placeholder="Sale Price" value="{% if submit != 'submit' or share['sellprice'] %}{{ share['sellprice']|shareprice }}{% endif %}" {% if share['status'] == 0 %}readonly{% endif %}>
                                     <span class="input-group-addon">p</span>
                                 </div>
                             </div>
@@ -255,7 +255,7 @@
                             <div class="col-md-8">
                                 <div class="input-group">
                                     <span class="input-group-addon">£</span>
-                                    <input type="text" class="form-control" id="selltradecost" name="selltradecost" placeholder="Trade Cost" value="{% if submit != 'submit' or share['selltradecost'] %}{{ share['selltradecost'] }}{% endif %}" {% if share['status'] == 0 %}readonly{% endif %}>
+                                    <input type="text" class="form-control" id="selltradecost" name="selltradecost" placeholder="Trade Cost" value="{% if submit != 'submit' or share['selltradecost'] %}{{ share['selltradecost']|shareprice }}{% endif %}" {% if share['status'] == 0 %}readonly{% endif %}>
                                 </div>
                             </div>
                         </div>
@@ -264,7 +264,7 @@
                             <div class="col-md-8">
                                 <div class="input-group">
                                     <span class="input-group-addon">£</span>
-                                    <input type="text" class="form-control" id="value" name="value" placeholder="Total Sale" value="{% if submit != 'submit' or share['value'] %}{{ share['value'] }}{% endif %}" {% if share['status'] == 0 %}readonly{% endif %}>
+                                    <input type="text" class="form-control" id="value" name="value" placeholder="Total Sale" value="{% if submit != 'submit' or share['value'] %}{{ share['value']|shareprice }}{% endif %}" {% if share['status'] == 0 %}readonly{% endif %}>
                                     <div class="input-group-btn">
                                         <button class="btn btn-default" id="sellpricecalculate" type="button">=</button>
                                     </div>
