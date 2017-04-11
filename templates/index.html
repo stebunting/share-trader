@@ -104,7 +104,7 @@
                 </td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-percentage" class="vert-middle text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}
                     {{ row['percentage']|percentage }}
-                    <p class="perday text-right">{% if row['daysHeld'] > 0 %}{{ (row['percentage'] / row['daysHeld'])|percentage }}{% else %}{{ row['percentage']|percentage }}{% endif %} /day</p>
+                    <p class="perday text-right">{% if row['daysHeld'] > 0 %}{{ (row['percentage'] / row['daysHeld'])|precisionpercentage }}{% else %}{{ row['percentage']|precisionpercentage }}{% endif %} /day</p>
                 </td>
             </tr>{% endfor %}{% else %}<td class="nodata" colspan="11">No shares yet</td>{% endif %}
         </tbody>

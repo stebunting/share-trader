@@ -34,6 +34,9 @@ def shareprice(value, **kwargs):
 def percentage(value):
     return "{:+.1f}%".format(value)
 
+def precisionpercentage(value):
+    return "{:+.3f}%".format(value)
+
 def dateFormat(value):
     return datetime.datetime.strftime(value, "%d %b %Y")
 

@@ -50,6 +50,7 @@ mysql = MySQL(app, cursorclass=DictCursor)
 app.jinja_env.filters['gbp'] = gbp
 app.jinja_env.filters['shareprice'] = shareprice
 app.jinja_env.filters['percentage'] = percentage
+app.jinja_env.filters['precisionpercentage'] = precisionpercentage
 app.jinja_env.filters['dateFormat'] = dateFormat
 app.jinja_env.filters['dateFormatISO'] = dateFormatISO
 

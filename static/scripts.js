@@ -26,6 +26,15 @@ function percent(value) {
     return symbol + parseFloat(value).toFixed(1) + '%'
 }
 
+// Format number as precision percent with +/- and 3 decimal place
+function precisionpercent(value) {
+    var symbol = '';
+    if (value >= 0) {
+        symbol = '+';
+    }
+    return symbol + parseFloat(value).toFixed(3) + '%'
+}
+
 // Update row colours
 function updateCellColours(ident) {
     var target = $(ident + 'target-edit').val();
@@ -79,7 +88,7 @@ function updateRow(company) {
     if (company['daysHeld'] > 0) {
         percentperday = percentperday / company['daysHeld'];
     }
-    var percentperdayelement = '<p class="perday text-right">' + percent(percentperday) + ' /day</p>';
+    var percentperdayelement = '<p class="perday text-right">' + precisionpercent(percentperday) + ' /day</p>';
     
     $(ident + 'sharegain').text(shareprice(company['sharegain'], profitloss=true))
     $(ident + 'bid').text(shareprice(company['sellprice']));
