@@ -40,6 +40,15 @@ td > a:hover {
     font-weight: bold;
 }
 
+/* Index Page - Profit/Loss per day */
+.perday {  
+    font-size: 0.8em;
+    font-style: italic;
+    color: #737373;
+    margin: 0px;
+    padding: 0px;
+}
+
 /* Index Page - No Shares */
 .nodata {
     font-weight: bold;

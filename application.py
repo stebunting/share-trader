@@ -69,7 +69,7 @@ def getPortfolio():
     for i in range(len(portfolios)):
         if portfolios[i]['id'] == session['portfolio']:
             return [portfolios, i]
-            
+
 # Function to calculate users capital and cash
 # Returns dictionary
 def getAssets(date = "{} 23:59:59".format(datetime.datetime.now().strftime("%Y-%m-%d"))):
@@ -136,6 +136,14 @@ def index():
         'dailyprofit': 0
     }
     for row in sharedata:
+        # Calculate days held
+        buyDatetime = verifyDate(row['buydate'], startofday=True)
+        if row['selldate'] == None:
+            row['daysHeld'] = (datetime.datetime.today() - buyDatetime).days
+        else:
+            sellDatetime = verifyDate(row['selldate'], startofday=True)
+            row['daysHeld'] = (sellDatetime - buyDatetime).days
+        
         portfoliodetails['exposure'] += row['sellprice'] * row['quantity'] * 0.01
         portfoliodetails['sale_costs'] += row['selltradecost']
         row['dailygain'] = row['sellprice'] - row['bidopen']
@@ -259,9 +267,7 @@ def shares():
                 share['percentage'] = ((10000 * (share['value'] - share['stampduty'] - share['buytradecost'] - share['selltradecost'] + share['dividends']) / (share['buyprice'] * share['quantity'])) - 100)
             
             if share['status'] == 0 and not verifyDate(share['selldate']):
-                share['status'] = 1
-                inputValidation = False
-                flash('Sale date required if closing a trade', 'danger')
+                share['selldate'] = datetime.datetime.now()
             
             if submit == 'submit':
                 quoteLogin()
@@ -285,6 +291,7 @@ def shares():
                     
                 # If updating an old entry
                 elif submit == 'update':
+                    data.pop()
                     data.append(request.form.get('id'))
                     cursor.execute('UPDATE shares SET userid=%s, portfolioid=%s, epic=%s, status=%s, buydate=%s, buyprice=%s, quantity=%s, stampduty=%s, buytradecost=%s, buycost=%s, target=%s, stoploss=%s, selldate=%s, sellprice=%s, selltradecost=%s, value=%s, profitloss=%s, percentage=%s, comment=%s WHERE id=%s', data)
                     conn.commit()
@@ -344,11 +351,11 @@ def shares():
         nav['previd'] = None if nav['index'] == 1 else data[nav['index'] - 2]['id']
         nav['nextid'] = None if nav['index'] == nav['numEntries'] else data[nav['index']]['id']
         
-        buyDatetime = datetime.datetime.strptime(str(share['buydate']), '%Y-%m-%d %H:%M:%S')
+        buyDatetime = verifyDate(share['buydate'], startofday=True)
         if share['selldate'] == None:
-            share['daysHeld'] = (datetime.datetime.now() - buyDatetime).days
+            share['daysHeld'] = (datetime.datetime.today() - buyDatetime).days
         else:
-            sellDatetime = datetime.datetime.strptime(str(share['selldate']), '%Y-%m-%d %H:%M:%S')
+            sellDatetime = verifyDate(share['selldate'], startofday=True)
             share['daysHeld'] = (sellDatetime - buyDatetime).days
         
         cursor.execute('SELECT date, amount FROM cash WHERE shareid=%s AND userid=%s AND portfolioid=%s ORDER BY date DESC', [id, session['user_id'], session['portfolio']])
@@ -369,7 +376,8 @@ def statement():
     today = datetime.datetime.today()
     startdate = today + datetime.timedelta(days=-365)
     if startdate < registerdate:
-        startdate = registerdate.replace(hour=0, minute=0, second=0, microsecond=0)
+        startdate = registerdate
+    startdate = startdate.replace(hour=0, minute=0, second=0, microsecond=0)
     dates = {
         'start': startdate,
         'end': today
@@ -378,12 +386,12 @@ def statement():
     # If default button was not pressed, check for input and verify
     if request.args.get('default') != 'Default':
         if request.args.get('startdate'):
-            date = verifyDate(request.args.get('startdate'))
+            date = verifyDate(request.args.get('startdate'), startofday=True)
             if date:
                 dates['start'] = date
     
         if request.args.get('enddate'):
-            date = verifyDate(request.args.get('enddate'))
+            date = verifyDate(request.args.get('enddate'), endofday=True)
             if date:
                 dates['end'] = date
     
@@ -410,7 +418,8 @@ def statement():
                 valid = False
         
         # Check date
-        if not verifyDate(request.form.get('cash_date')):
+        date = verifyDate(request.form.get('cash_date'))
+        if not date:
             msg.append('Invalid date')
             valid = False
         
@@ -429,7 +438,7 @@ def statement():
                 for share in sharedata:
                     ratio = share['quantity'] / total
                     cursor.execute('INSERT INTO cash (userid, portfolioid, amount, categoryid, shareid, notes, date) VALUES (%s, %s, %s, %s, %s, %s, %s)',
-                        [session['user_id'], session['portfolio'], cash_amount * ratio, request.form.get('cash_category'), share['id'], request.form.get('cash_notes'), request.form.get('cash_date')])
+                        [session['user_id'], session['portfolio'], cash_amount * ratio, request.form.get('cash_category'), share['id'], request.form.get('cash_notes'), date])
                     cursor.execute('UPDATE shares SET dividends=dividends+%s WHERE id=%s AND userid=%s AND portfolioid=%s',
                         [cash_amount * ratio, share['id'], session['user_id'], session['portfolio']])
                     conn.commit()
@@ -437,7 +446,7 @@ def statement():
             else:
                 # If not a dividend, just add into cash db
                 cursor.execute('INSERT INTO cash (userid, portfolioid, amount, categoryid, shareid, notes, date) VALUES (%s, %s, %s, %s, %s, %s, %s)',
-                    [session['user_id'], session['portfolio'], cash_amount, request.form.get('cash_category'), None, request.form.get('cash_notes'), request.form.get('cash_date')])
+                    [session['user_id'], session['portfolio'], cash_amount, request.form.get('cash_category'), None, request.form.get('cash_notes'), date])
                 conn.commit()
 
             # Update user's cash
@@ -908,7 +917,7 @@ def resetbidopen():
 @app.route('/updateshareprices', methods=['GET', 'POST'])
 def updateshareprices():
     # Get all active share data
-    cursor.execute('SELECT id, epic, buyprice, quantity, stampduty, buytradecost, bidopen, selltradecost, value, dividends, profitloss, percentage FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
+    cursor.execute('SELECT id, epic, buydate, selldate, buyprice, quantity, stampduty, buytradecost, bidopen, selltradecost, value, dividends, profitloss, percentage FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     sharedata = cursor.fetchall()
     
     # Calculate new row values based on new quote data
@@ -936,6 +945,14 @@ def updateshareprices():
         cursor.execute('UPDATE shares SET sellprice=%s, value=%s, profitloss=%s, percentage=%s WHERE userid=%s AND id=%s AND portfolioid=%s',
             [sharedata[i]['sellprice'], sharedata[i]['value'], sharedata[i]['profitloss'], sharedata[i]['percentage'], session['user_id'], sharedata[i]['id'], session['portfolio']])
         conn.commit()
+        
+        # Calculate days held
+        buyDatetime = verifyDate(sharedata[i]['buydate'], startofday=True)
+        if sharedata[i]['selldate'] == None:
+            sharedata[i]['daysHeld'] = (datetime.datetime.today() - buyDatetime).days
+        else:
+            sellDatetime = verifyDate(sharedata[i]['selldate'], startofday=True)
+            sharedata[i]['daysHeld'] = (sellDatetime - buyDatetime).days
     
     # Update exposure and lastupdated in portfolios db
     cursor.execute('UPDATE portfolios SET exposure=%s, lastupdated=NOW() WHERE userid=%s AND id=%s', [exposure, session['user_id'], session['portfolio']])

@@ -210,21 +210,23 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label col-md-4" for="company">Days Held</label>
+                            <label class="control-label col-md-4" for="daysheld">Days Held</label>
                             <div class="col-md-8">
                                 <input type="text" class="form-control" id="daysheld" name="daysheld" {% if submit != 'submit' %} value="{{ share['daysHeld'] }}"{% endif %} readonly>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label col-md-4" for="company">Profit/Loss</label>
+                            <label class="control-label col-md-4" for="profitloss">Profit/Loss</label>
                             <div class="col-md-8">
                                 <input type="text" class="form-control" id="profitloss" name="profitloss" value="{% if share['profitloss'] %}{{ share['profitloss']|gbp }}{% else %}{{ 0|gbp }}{% endif %}" readonly>
+                                {% if share['profitloss'] %}<p class="help-block text-right">{% if share['daysHeld'] > 0 %}{{ (share['profitloss'] / share['daysHeld'])|gbp }}{% else %}{{ share['profitloss']|gbp }}{% endif %} per day</p>{% endif %}
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label col-md-4" for="company">Percentage</label>
+                            <label class="control-label col-md-4" for="percentage">Percentage</label>
                             <div class="col-md-8">
                                 <input type="text" class="form-control" id="percentage" name="percentage" value="{% if share['percentage'] %}{{ share['percentage']|percentage }}{% else %}{{ 0|percentage }}{% endif %}" readonly>
+                                {% if share['percentage'] %}<p class="help-block text-right">{% if share['daysHeld'] > 0 %}{{ (share['percentage'] / share['daysHeld'])|percentage }}{% else %}{{ share['percentage']|percentage }}{% endif %} per day</p>{% endif %}
                             </div>
                         </div>
                     </div>

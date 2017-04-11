@@ -90,9 +90,28 @@ def login_required(f):
     return decorated_function
 
 # Function to verify date
-def verifyDate(test):
-    try:
-        verified = datetime.datetime.strptime(str(test).split(' ')[0], "%Y-%m-%d")
-        return verified
-    except:
-        return False
+def verifyDate(test, **kwargs):
+    if 'startofday' in kwargs and kwargs['startofday']:
+        try:
+            verified = datetime.datetime.strptime(str(test).split(' ')[0], "%Y-%m-%d")
+            return verified
+        except:
+            return False
+    elif 'endofday' in kwargs and kwargs['endofday']:
+        try:
+            verified = datetime.datetime.strptime(str(test).split(' ')[0], "%Y-%m-%d")
+            return verified.replace(hour=23, minute=59, second=59)
+        except:
+            return False
+    else:
+        try:
+            verified = datetime.datetime.strptime(str(test), "%Y-%m-%d %H:%m:%s")
+            return verified
+        except:
+            pass
+        try:
+            verified = datetime.datetime.strptime(str(test).split(' ')[0], "%Y-%m-%d")
+            time = datetime.datetime.time(datetime.datetime.now())
+            return datetime.datetime.combine(verified, time)
+        except:
+            pass

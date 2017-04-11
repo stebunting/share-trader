@@ -68,14 +68,27 @@ function updateRow(company) {
 
     // Update row
     var ident = '#' + company['id'] + '-' + company['epic'] + '-'
+    
+    var profitperday = company['profitloss']
+    if (company['daysHeld'] > 0) {
+        profitperday = profitperday / company['daysHeld'];
+    }
+    var profitperdayelement = '<p class="perday text-right">' + gbp(profitperday) + ' /day</p>';
+    
+    var percentperday = company['percentage']
+    if (company['daysHeld'] > 0) {
+        percentperday = percentperday / company['daysHeld'];
+    }
+    var percentperdayelement = '<p class="perday text-right">' + percent(percentperday) + ' /day</p>';
+    
     $(ident + 'sharegain').text(shareprice(company['sharegain'], profitloss=true))
-    $(ident + 'bid').text(shareprice(company['sellprice']))
-    $(ident + 'value').text(gbp(company['value']))
-    $(ident + 'profitloss').text(gbp(company['profitloss']))
-    $(ident + 'percentage').text(percent(company['percentage']))
+    $(ident + 'bid').text(shareprice(company['sellprice']));
+    $(ident + 'value').text(gbp(company['value']));
+    $(ident + 'profitloss').text(gbp(company['profitloss'])).append(profitperdayelement);
+    $(ident + 'percentage').text(percent(company['percentage'])).append(percentperdayelement);
     
     // Update colours
-    updateCellColours(ident)
+    updateCellColours(ident);
 }
 
 // Update details (exposure, profit/loss etc.)
