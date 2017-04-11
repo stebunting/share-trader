@@ -226,7 +226,7 @@
                             <label class="control-label col-md-4" for="percentage">Percentage</label>
                             <div class="col-md-8">
                                 <input type="text" class="form-control" id="percentage" name="percentage" value="{% if share['percentage'] %}{{ share['percentage']|percentage }}{% else %}{{ 0|percentage }}{% endif %}" readonly>
-                                {% if share['percentage'] %}<p class="help-block text-right">{% if share['daysHeld'] > 0 %}{{ (share['percentage'] / share['daysHeld'])|percentage }}{% else %}{{ share['percentage']|percentage }}{% endif %} per day</p>{% endif %}
+                                {% if share['percentage'] %}<p class="help-block text-right">{% if share['daysHeld'] > 0 %}{{ (share['percentage'] / share['daysHeld'])|precisionpercentage }}{% else %}{{ share['percentage']|precisionpercentage }}{% endif %} per day</p>{% endif %}
                             </div>
                         </div>
                     </div>

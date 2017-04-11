@@ -57,7 +57,7 @@
     <table class="table table-striped table-hover">
         <thead>
             <tr>
-                <th class="text-right">EPIC</th>
+                <th class="text-right" colspan="2">EPIC</th>
                 <th class="text-left">Company</th>
                 <th class="text-right">Cost</th>
                 <th class="text-right">Quantity</th>
@@ -71,6 +71,9 @@
         </thead>
         <tbody>
             {% if sharedata %}{% for row in sharedata %}<tr>
+                <td>
+                    <a href="http://uk.advfn.com/p.php?pid=financials&symbol=LSE:{{ row['epic']|upper }}" target="_blank"><img src="/static/images/advfn-logo.png" alt="ADVFN Logo" /></a>
+                </td>
                 <td id="{{ row['id'] }}-{{ row['epic']}}-epic" class="vert-middle text-right">
                     <a href="{{ url_for('shares') }}?submit=update&id={{ row['id'] }}">{{ row['epic'] }}</a>
                 </td>
