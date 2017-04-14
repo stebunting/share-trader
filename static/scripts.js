@@ -17,22 +17,13 @@ function shareprice(value, profitloss=false) {
     return retval
 }
 
-// Format number as percent with +/- and 1 decimal place
-function percent(value) {
+// Format number as percent with +/- and variable decimal place (default is 1)
+function percent(value, precision=1) {
     var symbol = '';
     if (value >= 0) {
         symbol = '+';
     }
-    return symbol + parseFloat(value).toFixed(1) + '%'
-}
-
-// Format number as precision percent with +/- and 3 decimal place
-function precisionpercent(value) {
-    var symbol = '';
-    if (value >= 0) {
-        symbol = '+';
-    }
-    return symbol + parseFloat(value).toFixed(3) + '%'
+    return symbol + parseFloat(value).toFixed(precision) + '%'
 }
 
 // Update row colours
@@ -40,7 +31,7 @@ function updateCellColours(ident) {
     var target = $(ident + 'target-edit').val();
     var stoploss = $(ident + 'stoploss-edit').val();
     var sharegain = parseFloat($(ident + 'sharegain').text());
-    var percentage = parseFloat($(ident + 'percentage').text());
+    var percentage = parseFloat($(ident + 'percentage p:first-child').text());
     var bid = $(ident + 'bid').text();
     
     if (bid <= parseFloat(stoploss)) {
@@ -88,7 +79,7 @@ function updateRow(company) {
     if (company['daysHeld'] > 0) {
         percentperday = percentperday / company['daysHeld'];
     }
-    var percentperdayelement = '<p class="perday text-right">' + precisionpercent(percentperday) + ' /day</p>';
+    var percentperdayelement = '<p class="perday text-right">' + percent(percentperday, 3) + ' /day</p>';
     
     $(ident + 'sharegain').text(shareprice(company['sharegain'], profitloss=true))
     $(ident + 'bid').text(shareprice(company['sellprice']));
@@ -178,6 +169,23 @@ function divPicker(epic) {
     }
 }
 
+// Function to send updated data for storing when target/stop loss edited directly from index table
+function updatetarget($element) {
+    var ident = $element.attr('id')
+    $.ajax({
+        url: '/updateindex',
+        type: 'POST',
+        data: JSON.stringify([ident, $element.val()]),
+        contentType: 'application/json; charset=utf-8',
+        dataType: 'json',
+        async: false,
+        success: function(val) {
+            var data = ident.split('-');
+            updateCellColours('#' + data[0] + '-' + data[1] + '-');
+        }
+    });
+}
+
 $(function() {
     // Nav Bar
     // Changes portfolio when menu item selected
@@ -201,27 +209,13 @@ $(function() {
     setTimeout(function(){
         $('#flash').fadeOut(1000); }, 3000);
     
-    // Index Page
-    // Sends updated data for storing when target/stop loss edited directly from table
+    // Index Page - Edit target/stop loss
+    // Call function when focus out or enter pressed
     $('.indexform').keydown(function(e){
         if(e.keyCode == 13){
-            $element = $(this)
-            var ident = $element.attr('id')
-            $.ajax({
-                url: '/updateindex',
-                type: 'POST',
-                data: JSON.stringify([ident, $element.val()]),
-                contentType: 'application/json; charset=utf-8',
-                dataType: 'json',
-                async: false,
-                success: function(val) {
-                    var data = ident.split('-');
-                    updateCellColours('#' + data[0] + '-' + data[1] + '-');
-                    $element.val(shareprice(val)).blur();
-                }
-            });
+            updatetarget($(this));
         }
-    })
+    }).focusout(function(){ updatetarget($(this)); });
     
     // Share Page
     // Updates company and ADVFN link when EPIC changed

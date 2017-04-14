@@ -99,13 +99,13 @@
                 <td id="{{ row['id'] }}-{{ row['epic']}}-value" class="vert-middle text-right">
                     {{ (row['sellprice'] * row['quantity'] * 0.01)|gbp }}
                 </td>
-                <td id="{{ row['id'] }}-{{ row['epic']}}-profitloss" class="vert-middle text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}
+                <td id="{{ row['id'] }}-{{ row['epic']}}-profitloss" class="vert-middle text-right{% if row['profitloss'] < 0 %} danger">{% elif row['profitloss'] >= 20 %} success">{% else %}">{% endif %}
                     {{ row['profitloss']|gbp }}
                     <p class="perday text-right">{% if row['daysHeld'] > 0 %}{{ (row['profitloss'] / row['daysHeld'])|gbp }}{% else %}{{ row['profitloss']|gbp }}{% endif %} /day</p>
                 </td>
-                <td id="{{ row['id'] }}-{{ row['epic']}}-percentage" class="vert-middle text-right{% if row['percentage'] < 0 %} danger">{% elif row['percentage'] >= 20 %} success">{% else %}">{% endif %}
+                <td id="{{ row['id'] }}-{{ row['epic']}}-percentage" class="vert-middle text-right{% if row['profitloss'] < 0 %} danger">{% elif row['profitloss'] >= 20 %} success">{% else %}">{% endif %}
                     {{ row['percentage']|percentage }}
-                    <p class="perday text-right">{% if row['daysHeld'] > 0 %}{{ (row['percentage'] / row['daysHeld'])|precisionpercentage }}{% else %}{{ row['percentage']|precisionpercentage }}{% endif %} /day</p>
+                    <p class="perday text-right">{% if row['daysHeld'] > 0 %}{{ (row['percentage'] / row['daysHeld'])|percentage(precision=3) }}{% else %}{{ row['percentage']|percentage(precision=3) }}{% endif %} /day</p>
                 </td>
             </tr>{% endfor %}{% else %}<td class="nodata" colspan="11">No shares yet</td>{% endif %}
         </tbody>

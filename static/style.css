@@ -9,9 +9,23 @@ h1 {
     margin-top: 0px;
 }
 
+/* Tables with no data in */
+.nodata {
+    font-weight: bold;
+    font-size: 3em;
+    text-align: center;
+}
+
+.nodata-s {
+    font-weight: bold;
+    font-size: 2em;
+    text-align: center;
+}
+
 /* Index Page - ADVFN link */
 .advfntext {
     display: block;
+    padding-top: 3px;
 }
 
 /* Company Links in Index Table
@@ -54,13 +68,6 @@ td > a:hover {
     padding: 0px;
 }
 
-/* Index Page - No Shares */
-.nodata {
-    font-weight: bold;
-    font-size: 3em;
-    text-align: center;
-}
-
 /* Remove hover animation from nav buttons
    Share Entry Page */
 .btn-static:hover, .btn-static:focus {
@@ -79,6 +86,11 @@ td > a:hover {
    Share Page Dividend table */
 tfoot > tr > td {
     font-weight: bold;
+}
+
+/* Set textareas to be non-resizable */
+textarea {
+    resize: none;
 }
 
 /* Padding on date start/end

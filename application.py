@@ -50,9 +50,7 @@ mysql = MySQL(app, cursorclass=DictCursor)
 app.jinja_env.filters['gbp'] = gbp
 app.jinja_env.filters['shareprice'] = shareprice
 app.jinja_env.filters['percentage'] = percentage
-app.jinja_env.filters['precisionpercentage'] = precisionpercentage
 app.jinja_env.filters['dateFormat'] = dateFormat
-app.jinja_env.filters['dateFormatISO'] = dateFormatISO
 
 # Connect to MySQL database
 conn = mysql.connect()
@@ -273,6 +271,9 @@ def shares():
             if submit == 'submit':
                 quoteLogin()
                 share['bidopen'] = quote(share['epic'])
+                if share['bidopen'] == None:
+                    flash('EPIC Required', 'danger')
+                    valid = False
             else:
                 share['bidopen'] = None
             
@@ -554,6 +555,19 @@ def log():
     cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC', [session['user_id'], session['portfolio']])
     log = cursor.fetchall()
     
+    # Recalculate all rows capital/cash in logging to fix errors
+    if request.method == 'POST' and request.form.get('submit') == 'Recalculate':
+        for i in range(len(log)):
+            date = '{} 23:59:59'.format(log[i]['date'].strftime('%Y-%m-%d'))
+            assets = getAssets(date)
+            cursor.execute('UPDATE log SET capital=%s, cash=%s WHERE id=%s', [assets['capital'], assets['cash'], log[i]['id']])
+            conn.commit()
+            
+        # Reload log from database
+        cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC', [session['user_id'], session['portfolio']])
+        log = cursor.fetchall()
+    
+    
     # Get FTSE100 when account created
     cursor.execute('SELECT ftse100 FROM portfolios WHERE userid=%s AND id=%s', [session['user_id'], session['portfolio']])
     ftse100base = cursor.fetchone()['ftse100']
@@ -574,14 +588,6 @@ def log():
                 log[i - 1]['dailypercent'] = None
         previous_exp = log[i]['exposure']
         previous_cash = log[i]['cash']
-    
-    # Recalculate all rows capital/cash in logging to fix errors
-    if request.method == 'POST' and request.form.get('submit') == 'Recalculate':
-        for i in range(len(log)):
-            date = '{} 23:59:59'.format(log[i]['date'].strftime('%Y-%m-%d'))
-            assets = getAssets(date)
-            cursor.execute('UPDATE log SET capital=%s, cash=%s WHERE id=%s', [assets['capital'], assets['cash'], log[i]['id']])
-            conn.commit()
     
     return render_template('log.html', log=log, portfolios=getPortfolio()[0], ftse100base=ftse100base)
 

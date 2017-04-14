@@ -11,6 +11,13 @@ from lxml import html
 
 from functools import wraps
 
+# Get environment variables, either locally or from config vars
+try:
+    from settings import *
+except ImportError:
+    advfnuser = os.environ['ADVFNUSER']
+    advfnpassword = os.environ['ADVFNPASSWORD']
+
 def gbp(value, **kwargs):
     try:
         value = float(value)
@@ -31,22 +38,25 @@ def shareprice(value, **kwargs):
     else:
         return "{:.2f}".format(value)
 
-def percentage(value):
-    return "{:+.1f}%".format(value)
+def percentage(value, **kwargs):
+    precision = 1
+    if 'precision' in kwargs:
+        try:
+            precision = int(kwargs['precision'])
+        except ValueError:
+            return value
+    return "{:+.{precision}f}%".format(value, precision=precision)
 
-def precisionpercentage(value):
-    return "{:+.3f}%".format(value)
-
-def dateFormat(value):
-    return datetime.datetime.strftime(value, "%d %b %Y")
-
-def dateFormatISO(value):
-    return datetime.datetime.strftime(value, "%Y-%m-%d")
+def dateFormat(value, **kwargs):
+    format = "%d %b %Y"
+    if 'format' in kwargs and kwargs['format'] == 'ISO':
+        format = "%Y-%m-%d"
+    return datetime.datetime.strftime(value, format)
 
 def quoteLogin():
     payload = {
-        'login_username': 'sharetrader6',
-        'login_password': 'st54st54',
+        'login_username': advfnuser,
+        'login_password': advfnpassword,
         'site': 'uk'
     }
     request_session = requests.session()
@@ -55,10 +65,7 @@ def quoteLogin():
     payload['redirect_url'] = list(set(tree.xpath("//input[@name='redirect_url']/@value")))[0]
     headers = {
         'Referer': 'http://uk.advfn.com/common/account/login',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_4) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.1 Safari/603.1.30',
-        'Accept-Encoding': 'gzip, deflate',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-us'
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_4) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.1 Safari/603.1.30'
     }
     result = request_session.post(
         'https://secure.advfn.com/login/secure', 
@@ -76,6 +83,8 @@ def quote(epic, price='bid'):
     page = requests.get('http://uk.advfn.com/p.php?pid=financials&symbol=LSE:{}'.format(epic))
     tree = html.fromstring(page.content)
     cell = tree.xpath('.//td[@class="m"][@align="center"]/text()')
+    if len(cell) < 5:
+        return None
     if price == 'price':
         value = cell[0]
     elif price == 'offer':

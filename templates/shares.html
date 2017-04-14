@@ -49,7 +49,7 @@
                             </div>
                         </div>
                     </div>
-                </div>{% if share['dividends'] and share['dividends'] > 0 %}
+                </div>{% if submit != 'submit' %}
                 
                 <div class="panel panel-primary">
                     <div class="panel-heading">
@@ -64,11 +64,14 @@
                                         <th class="text-right">Amount</th>
                                     </tr>
                                 </thead>
-                                <tbody>{% for dividend in dividends %}
+                                <tbody>{% if dividends|length > 0 %}{% for dividend in dividends %}
                                     <tr>
                                         <td class="text-right">{{ dividend['date']|dateFormat }}</td>
                                         <td class="text-right">{{ dividend['amount']|gbp }}</td>
-                                    </tr>{% endfor %}
+                                    </tr>{% endfor %}{% else %}
+                                    <tr>
+                                        <td class="nodata-s" colspan="2">No dividends</td>
+                                    </tr>{% endif %}
                                 </tbody>
                                 <tfoot>
                                     <tr>
@@ -89,7 +92,7 @@
                         <div class="form-group">
                             <label class="control-label col-md-3" for="comment">Comment</label>
                             <div class="col-md-9">
-                                <textarea id ="comment" name="comment" rows="6" cols="40" placeholder="Why did you make the trade? How strongly do you feel about it?">{% if share['comment'] %}{{ share['comment'] }}{% endif %}</textarea>
+                                <textarea class="form-control" id="comment" name="comment" rows="6" cols="40" placeholder="Why did you make the trade? How strongly do you feel about it?">{% if share['comment'] %}{{ share['comment'] }}{% endif %}</textarea>
                             </div>
                         </div>
         
@@ -226,7 +229,7 @@
                             <label class="control-label col-md-4" for="percentage">Percentage</label>
                             <div class="col-md-8">
                                 <input type="text" class="form-control" id="percentage" name="percentage" value="{% if share['percentage'] %}{{ share['percentage']|percentage }}{% else %}{{ 0|percentage }}{% endif %}" readonly>
-                                {% if share['percentage'] %}<p class="help-block text-right">{% if share['daysHeld'] > 0 %}{{ (share['percentage'] / share['daysHeld'])|precisionpercentage }}{% else %}{{ share['percentage']|precisionpercentage }}{% endif %} per day</p>{% endif %}
+                                {% if share['percentage'] %}<p class="help-block text-right">{% if share['daysHeld'] > 0 %}{{ (share['percentage'] / share['daysHeld'])|percentage(precision=3) }}{% else %}{{ share['percentage']|percentage(precision=3) }}{% endif %} per day</p>{% endif %}
                             </div>
                         </div>
                     </div>
