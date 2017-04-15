@@ -45,7 +45,7 @@
                             <label for="cash_category" class="col-sm-3 control-label">Type</label>
                             <div class="col-sm-9">
                                 <select class="form-control" name="cash_category" id="cash_category"{% if prefill['epic'] %} data-epic="{{ prefill['epic'] }}"{% endif %}>
-                                    {% for category in cash_categories %}<option value="{{ category['id'] }}"{% if prefill['type'] and prefill['type']|int == category['id'] %} selected="selected"{% endif %}>{{ category['category'] }}</option>
+                                    {% for category in cash_categories %}<option value="{{ category['id'] }}"{% if prefill['category'] and prefill['category']|int == category['id'] %} selected="selected"{% endif %}>{{ category['category'] }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -84,9 +84,9 @@
             </tr>
         </thead>
         <tbody>
-            {% if statement %}{% for row in statement %}{% if row['date'] >= dates['start'] and row ['date'] <= dates['end'] %}<tr{% if row['type'] == 'buy' or row['type'] == 'sell' or row['type'] == 2 %} class="warning"{% endif %}>
+            {% if statement %}{% for row in statement %}{% if row['date'] >= dates['start'] and row ['date'] <= dates['end'] %}<tr{% if row['category'] == 'buy' or row['category'] == 'sell' or row['category'] == 20 %} class="warning"{% endif %}>
                 <td>{{ row['date']|dateFormat }}</td>
-                <td>{% if row['type'] == 'buy' or row['type'] == 'sell' or row['type'] == 2 %}<a href="{{ url_for('shares') }}?id={{ row['linkid'] }}">{% endif %}{{ row['transaction'] }}{% if row['type'] == 'buy' or row['type'] == 'sell' or row['type'] == 2 %}</a>{% endif %}{% if row['notes'] %}
+                <td>{% if row['category'] == 'buy' or row['category'] == 'sell' or row['category'] == 20 %}<a href="{{ url_for('shares') }}?id={{ row['linkid'] }}">{% endif %}{{ row['transaction'] }}{% if row['category'] == 'buy' or row['category'] == 'sell' or row['category'] == 20 %}</a>{% endif %}{% if row['notes'] %}
                 <p class="help-block">{{ row['notes'] }}</p>{% endif %}</td>
                 <td>{% if row['debit'] %}{{ row['debit']|gbp }}{% endif %}</td>
                 <td>{% if row['credit'] %}{{ row['credit']|gbp }}{% endif %}</td>
@@ -94,7 +94,7 @@
                 <td>{% if row['cashid'] %}
                     <form action="{{ url_for('statement') }}" method="post">
                         <input type="hidden" name="id" value="{{ row['cashid'] }}">
-                        <input type="hidden" name="type" value="{{ row['type'] }}">
+                        <input type="hidden" name="category" value="{{ row['category'] }}">
                         <input type="hidden" name="shareid" value="{{ row['linkid'] }}">
                         <input type="hidden" name="value" value="{{ (-1 * row['debit']|float) + row['credit']|float }}">
                         <button type="submit" name="submit" value="delete" class="btn btn-default btn-xs" title="Delete transaction">

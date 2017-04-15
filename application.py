@@ -55,6 +55,7 @@ app.jinja_env.filters['dateFormat'] = dateFormat
 # Connect to MySQL database
 conn = mysql.connect()
 cursor = conn.cursor()
+
 try:
     cursor.execute("SET time_zone='Europe/Stockholm'")
 except:
@@ -72,7 +73,7 @@ def getPortfolio():
 # Function to calculate users capital and cash
 # Returns dictionary
 def getAssets(date = "{} 23:59:59".format(datetime.datetime.now().strftime("%Y-%m-%d"))):
-    cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=1 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
+    cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=10 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
     capital = cursor.fetchone()['capital']
     capital = float(capital) if capital else 0
 
@@ -403,7 +404,7 @@ def statement():
         valid = True
         prefill = {
             'amount': request.form.get('cash_amount'),
-            'type': request.form.get('cash_category'),
+            'category': request.form.get('cash_category'),
             'epic': request.form.get('sharedividend'),
             'notes': request.form.get('cash_notes'),
             'date': request.form.get('cash_date')
@@ -424,12 +425,15 @@ def statement():
         if not date:
             msg.append('Invalid date')
             valid = False
+
+        # Convert category to integer
+        category = int(request.form.get('cash_category'))
         
         if valid:
             # If dividend
-            if request.form.get('cash_category') == '2' and request.form.get('sharedividend'):
+            if category == 20 and request.form.get('sharedividend'):
         
-                # If type is dividend, get all possible shares from db
+                # If category is dividend, get all possible shares from db
                 cursor.execute('SELECT id, quantity FROM shares WHERE epic=%s AND status=1 AND userid=%s AND portfolioid=%s', [request.form.get('sharedividend'), session['user_id'], session['portfolio']])
                 sharedata = cursor.fetchall()
             
@@ -440,15 +444,19 @@ def statement():
                 for share in sharedata:
                     ratio = share['quantity'] / total
                     cursor.execute('INSERT INTO cash (userid, portfolioid, amount, categoryid, shareid, notes, date) VALUES (%s, %s, %s, %s, %s, %s, %s)',
-                        [session['user_id'], session['portfolio'], cash_amount * ratio, request.form.get('cash_category'), share['id'], request.form.get('cash_notes'), date])
+                        [session['user_id'], session['portfolio'], cash_amount * ratio, category, share['id'], request.form.get('cash_notes'), date])
                     cursor.execute('UPDATE shares SET dividends=dividends+%s WHERE id=%s AND userid=%s AND portfolioid=%s',
                         [cash_amount * ratio, share['id'], session['user_id'], session['portfolio']])
                     conn.commit()
-                
+            
             else:
+                # If withdrawal, make negative
+                if category == 15 or category == 30:
+                    cash_amount *= -1
+
                 # If not a dividend, just add into cash db
                 cursor.execute('INSERT INTO cash (userid, portfolioid, amount, categoryid, shareid, notes, date) VALUES (%s, %s, %s, %s, %s, %s, %s)',
-                    [session['user_id'], session['portfolio'], cash_amount, request.form.get('cash_category'), None, request.form.get('cash_notes'), date])
+                    [session['user_id'], session['portfolio'], cash_amount, category, None, request.form.get('cash_notes'), date])
                 conn.commit()
 
             # Update user's cash
@@ -456,7 +464,7 @@ def statement():
             cursor.execute('UPDATE portfolios SET cash=%s WHERE userid=%s AND id=%s', [cash, session['user_id'], session['portfolio']])
             conn.commit()
                 
-            if request.form.get('cash_category') == '1':
+            if category >= 10 and category <= 15:
                 # Update users capital invested if capital entry
                 cursor.execute('UPDATE portfolios SET capital=capital+%s WHERE userid=%s AND id=%s', [cash_amount, session['user_id'], session['portfolio']])
             
@@ -469,14 +477,14 @@ def statement():
                 conn.commit()
             
             prefill = None
-            cash_category = None
     
+    # Delete cash transaction
     elif request.method == 'POST' and request.form.get('submit') == 'delete':
         cursor.execute('DELETE FROM cash WHERE id=%s AND userid=%s AND portfolioid=%s', [request.form.get('id'), session['user_id'], session['portfolio']])
         cursor.execute('UPDATE portfolios SET cash=cash-%s WHERE userid=%s AND id=%s', [request.form.get('value'), session['user_id'], session['portfolio']])
-        if request.form.get('type') == '1':
+        if request.form.get('category') == '10' or request.form.get('category') == '15':
             cursor.execute('UPDATE portfolios SET capital=capital-%s WHERE userid=%s AND id=%s', [request.form.get('value'), session['user_id'], session['portfolio']])
-        elif request.form.get('type') == '2':
+        elif request.form.get('category') == '20':
             cursor.execute('UPDATE shares SET dividends=dividends-%s WHERE id=%s AND userid=%s AND portfolioid=%s', [request.form.get('value'), request.form.get('shareid'), session['user_id'], session['portfolio']])
         prefill = None
     
@@ -498,7 +506,7 @@ def statement():
             'transaction': row['company'].title(),
             'debit': row['buycost'],
             'credit': None,
-            'type': 'buy'
+            'category': 'buy'
         })
     
     # Get share sell data from database and add to statement list
@@ -511,7 +519,7 @@ def statement():
             'transaction': row['company'].title(),
             'debit': None,
             'credit': row['value'],
-            'type': 'sell'
+            'category': 'sell'
         })
     
     # Get cash transactions from database and add to statement list
@@ -526,7 +534,7 @@ def statement():
             'debit': None,
             'credit': None,
             'notes': row['notes'],
-            'type': row['categoryid']
+            'category': row['categoryid']
         }
         if row['amount'] >= 0:
             transaction['credit'] = row['amount']

@@ -145,7 +145,7 @@ function refreshPrices() {
 
 // Function to print extra select on statement page
 function divPicker(epic) {
-    if ($('#cash_category').val() == '2') {
+    if ($('#cash_category').val() == '20') {
         var $options = '';
         $.getJSON('/getepics').done(function(data) {
             $.each(data, function(key, val) {
@@ -327,7 +327,7 @@ $(function() {
     
     // Statement Page
     $('#cash_category').on('change', divPicker);
-    if ($('#cash_category').val() == 2) {
+    if ($('#cash_category').val() == 20) {
         $('#newCash').modal('show');
         divPicker($('#cash_category').attr('data-epic'));
     }
