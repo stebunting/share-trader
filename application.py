@@ -86,7 +86,7 @@ def getAssets(date = "{} 23:59:59".format(datetime.datetime.now().strftime("%Y-%
         'cash': cash
     }
  
- # Function to update assets in database
+# Function to update assets in database
 def updateAssets():
     assets = getAssets()
     cursor.execute('UPDATE portfolios SET capital=%s, cash=%s WHERE id=%s AND userid=%s', [assets['capital'], assets['cash'], session['portfolio'], session['user_id']])
@@ -975,7 +975,7 @@ def updateshareprices():
     
     # Log values
     date = datetime.datetime.now()
-    if not lastlog or lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d") or lastlog['exposure'] != exposure or lastlog['ftse100'] != ftse100:
+    if not lastlog or lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d") or lastlog['exposure'] != round(exposure, 2) or lastlog['ftse100'] != ftse100:
         if lastlog and lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d"):
             cursor.execute('UPDATE log SET date=NOW(), exposure=%s, capital=%s, cash=%s, ftse100=%s WHERE id=%s', [exposure, assets['capital'], assets['cash'], ftse100, lastlog['id']])
         else:
