@@ -2,6 +2,7 @@
 import os
 import datetime
 import locale
+import pytz
 
 # Flask module
 from flask import session, redirect, url_for, request
@@ -11,6 +12,8 @@ import requests
 from lxml import html
 
 from functools import wraps
+
+time_zone = pytz.timezone('Europe/London')
 
 # Get environment variables, either locally or from config vars
 try:
@@ -107,24 +110,24 @@ def verifyDate(test, **kwargs):
     if 'startofday' in kwargs and kwargs['startofday']:
         try:
             verified = datetime.datetime.strptime(str(test).split(' ')[0], "%Y-%m-%d")
-            return verified
+            return verified.replace(tzinfo=time_zone)
         except:
             return False
     elif 'endofday' in kwargs and kwargs['endofday']:
         try:
             verified = datetime.datetime.strptime(str(test).split(' ')[0], "%Y-%m-%d")
-            return verified.replace(hour=23, minute=59, second=59)
+            return verified.replace(hour=23, minute=59, second=59, tzinfo=time_zone)
         except:
             return False
     else:
         try:
             verified = datetime.datetime.strptime(str(test), "%Y-%m-%d %H:%m:%s")
-            return verified
+            return verified.replace(tzinfo=time_zone)
         except:
             pass
         try:
             verified = datetime.datetime.strptime(str(test).split(' ')[0], "%Y-%m-%d")
             time = datetime.datetime.time(datetime.datetime.now())
-            return datetime.datetime.combine(verified, time)
+            return datetime.datetime.combine(verified, time).replace(tzinfo=time_zone)
         except:
             pass

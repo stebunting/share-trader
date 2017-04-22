@@ -34,7 +34,7 @@ except ImportError:
     smtpuser = os.environ['SMTPUSER']
     smtppassword = os.environ['SMTPPASSWORD']
     loc = os.environ['LOC']
-    
+
 locale.setlocale(locale.LC_ALL, loc)
 
 app = Flask(__name__)
@@ -57,7 +57,7 @@ conn = mysql.connect()
 cursor = conn.cursor()
 
 try:
-    cursor.execute("SET time_zone='Europe/Stockholm'")
+    cursor.execute("SET time_zone='Europe/London'")
 except:
     pass
 
@@ -113,7 +113,7 @@ def index():
             pass
         
     portfolio_index = portfolios[1]
-    portfolios[0][portfolio_index]['lastupdated'] = portfolios[0][portfolio_index]['lastupdated'].strftime('%a %d %b @ %I:%M:%S%p')
+    portfolios[0][portfolio_index]['lastupdated'] = portfolios[0][portfolio_index]['lastupdated'].replace(tzinfo=time_zone).strftime('%a %d %b @ %I:%M:%S%p')
     
     # Get open share data from database
     cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
@@ -139,7 +139,7 @@ def index():
         # Calculate days held
         buyDatetime = verifyDate(row['buydate'], startofday=True)
         if row['selldate'] == None:
-            row['daysHeld'] = (datetime.datetime.today() - buyDatetime).days
+            row['daysHeld'] = (datetime.datetime.now(time_zone) - buyDatetime).days
         else:
             sellDatetime = verifyDate(row['selldate'], startofday=True)
             row['daysHeld'] = (sellDatetime - buyDatetime).days
@@ -372,11 +372,11 @@ def shares():
 def statement():
     portfolios = getPortfolio()
     portfolio_index = portfolios[1]
-    registerdate = portfolios[0][portfolio_index]['registerdate']
+    registerdate = portfolios[0][portfolio_index]['registerdate'].replace(tzinfo=time_zone)
     msg = []
     
     # Set default values for start and end date
-    today = datetime.datetime.today()
+    today = datetime.datetime.now(time_zone)
     startdate = today + datetime.timedelta(days=-365)
     if startdate < registerdate:
         startdate = registerdate
@@ -502,7 +502,7 @@ def statement():
     for row in buydata:
         statement.append({
             'linkid': row['id'],
-            'date': row['buydate'],
+            'date': row['buydate'].replace(tzinfo=time_zone),
             'transaction': row['company'].title(),
             'debit': row['buycost'],
             'credit': None,
@@ -515,7 +515,7 @@ def statement():
     for row in selldata:
         statement.append({
             'linkid': row['id'],
-            'date': row['selldate'],
+            'date': row['selldate'].replace(tzinfo=time_zone),
             'transaction': row['company'].title(),
             'debit': None,
             'credit': row['value'],
@@ -529,7 +529,7 @@ def statement():
         transaction = {
             'cashid': row['id'],
             'linkid': row['shareid'],
-            'date': row['date'],
+            'date': row['date'].replace(tzinfo=time_zone),
             'transaction': 'Cash: {}'.format(row['category']),
             'debit': None,
             'credit': None,
@@ -552,7 +552,7 @@ def statement():
             row['balance'] = balance - row['debit']
         balance = row['balance']
     
-    date = datetime.datetime.now().strftime("%Y-%m-%d")
+    date = datetime.datetime.now(time_zone).strftime("%Y-%m-%d")
     return render_template('statement.html', prefill=prefill, cash_categories=cash_categories, statement=statement, portfolios=portfolios[0], date=date, msg=msg, dates=dates)
 
 # Route for Log Page
@@ -566,7 +566,7 @@ def log():
     # Recalculate all rows capital/cash in logging to fix errors
     if request.method == 'POST' and request.form.get('submit') == 'Recalculate':
         for i in range(len(log)):
-            date = '{} 23:59:59'.format(log[i]['date'].strftime('%Y-%m-%d'))
+            date = '{} 23:59:59'.format(log[i]['date'].replace(tzinfo=time_zone).strftime('%Y-%m-%d'))
             assets = getAssets(date)
             cursor.execute('UPDATE log SET capital=%s, cash=%s WHERE id=%s', [assets['capital'], assets['cash'], log[i]['id']])
             conn.commit()
@@ -605,10 +605,10 @@ def log():
 def charts():
     portfolios = getPortfolio()
     portfolio_index = portfolios[1]
-    registerdate = portfolios[0][portfolio_index]['registerdate']
+    registerdate = portfolios[0][portfolio_index]['registerdate'].replace(tzinfo=time_zone)
     
     # Set default values for start and end date
-    today = datetime.datetime.today()
+    today = datetime.datetime.now(time_zone)
     startdate = today + datetime.timedelta(days=-365)
     if startdate < registerdate:
         startdate = registerdate.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -940,9 +940,10 @@ def updateshareprices():
     exposure = 0
     salevaluedelta = 0
     for i in range(cursor.rowcount):
+
         # Get new sell price
         sharedata[i]['sellprice'] = quote(sharedata[i]['epic'])
-        if sharedata[i]['sellprice'] == False:
+        if not sharedata[i]['sellprice']:
             return ''
         
         # Calculate share gain, value, profitloss, percentage
@@ -964,7 +965,7 @@ def updateshareprices():
         # Calculate days held
         buyDatetime = verifyDate(sharedata[i]['buydate'], startofday=True)
         if sharedata[i]['selldate'] == None:
-            sharedata[i]['daysHeld'] = (datetime.datetime.today() - buyDatetime).days
+            sharedata[i]['daysHeld'] = (datetime.datetime.now(time_zone) - buyDatetime).days
         else:
             sellDatetime = verifyDate(sharedata[i]['selldate'], startofday=True)
             sharedata[i]['daysHeld'] = (sellDatetime - buyDatetime).days
