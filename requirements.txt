@@ -15,4 +15,5 @@ pyparsing==2.2.0
 pytz==2017.2
 requests==2.13.0
 six==1.10.0
+tzlocal==1.4
 Werkzeug==0.12.1
