@@ -3,6 +3,7 @@ import os
 import datetime
 import locale
 import pytz
+from tzlocal import get_localzone
 
 # Flask module
 from flask import session, redirect, url_for, request
@@ -13,7 +14,9 @@ from lxml import html
 
 from functools import wraps
 
+# Get timezones
 time_zone = pytz.timezone('Europe/London')
+local_tz = get_localzone()
 
 # Get environment variables, either locally or from config vars
 try:

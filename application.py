@@ -113,8 +113,9 @@ def index():
             pass
         
     portfolio_index = portfolios[1]
-    portfolios[0][portfolio_index]['lastupdated'] = portfolios[0][portfolio_index]['lastupdated'].replace(tzinfo=time_zone).strftime('%a %d %b @ %I:%M:%S%p')
-    
+    portfolios[0][portfolio_index]['lastupdated'] = portfolios[0][portfolio_index]['lastupdated'].replace(tzinfo=time_zone).astimezone(local_tz).strftime('%a %d %b @ %I:%M:%S%p')
+    portfolios[0][portfolio_index]['lastupdated'] = portfolios[0][portfolio_index]['lastupdated']
+
     # Get open share data from database
     cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     sharedata = cursor.fetchall()
@@ -356,7 +357,7 @@ def shares():
         
         buyDatetime = verifyDate(share['buydate'], startofday=True)
         if share['selldate'] == None:
-            share['daysHeld'] = (datetime.datetime.today() - buyDatetime).days
+            share['daysHeld'] = (datetime.datetime.now(time_zone) - buyDatetime).days
         else:
             sellDatetime = verifyDate(share['selldate'], startofday=True)
             share['daysHeld'] = (sellDatetime - buyDatetime).days
