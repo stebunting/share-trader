@@ -97,6 +97,7 @@ def updateAssets():
 @app.route('/')
 @login_required
 def index():
+    print(get_localzone())
     # Get portfolio details and set last updated text to readable format
     portfolios = getPortfolio()
     
