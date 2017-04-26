@@ -113,7 +113,7 @@ def index():
             pass
         
     portfolio_index = portfolios[1]
-    portfolios[0][portfolio_index]['lastupdated'] = time_zone.localize(portfolios[0][portfolio_index]['lastupdated']).astimezone(local_tz).strftime('%a %d %b @ %I:%M:%S%p')
+    portfolios[0][portfolio_index]['lastupdated'] = time_zone.localize(portfolios[0][portfolio_index]['lastupdated']).astimezone(local_tz) #.strftime('%a %d %b @ %I:%M:%S%p')
 
     # Get open share data from database
     cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
