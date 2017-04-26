@@ -17,6 +17,7 @@ from functools import wraps
 # Get timezones
 time_zone = pytz.timezone('Europe/London')
 local_tz = get_localzone()
+print(local_tz)
 
 # Get environment variables, either locally or from config vars
 try:
