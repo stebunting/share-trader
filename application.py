@@ -72,7 +72,7 @@ def getPortfolio():
 
 # Function to calculate users capital and cash
 # Returns dictionary
-def getAssets(date = "{} 23:59:59".format(datetime.datetime.now().strftime("%Y-%m-%d"))):
+def getAssets(date = "{} 23:59:59".format(datetime.datetime.utcnow().strftime("%Y-%m-%d"))):
     cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=10 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
     capital = cursor.fetchone()['capital']
     capital = float(capital) if capital else 0
@@ -97,7 +97,6 @@ def updateAssets():
 @app.route('/')
 @login_required
 def index():
-    print(get_localzone())
     # Get portfolio details and set last updated text to readable format
     portfolios = getPortfolio()
     
@@ -213,7 +212,7 @@ def shares():
             # Dictionary of posted values to check, will be added to share dict
             # {field: [variable, type, require user entry, default, message]}
             values = {
-                'buydate': [request.form.get('buydate'), 'date', False, datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'), ''],
+                'buydate': [request.form.get('buydate'), 'date', False, datetime.datetime.strftime(datetime.datetime.utcnow(), '%Y-%m-%d %H:%M:%S'), ''],
                 'selldate': [request.form.get('selldate'), 'date', False, None, ''],
                 'quantity': [request.form.get('quantity'), 'int', True, 0, 'Quantity required'],
                 'stampduty': [request.form.get('stampduty'), 'float', False, 0, ''],
@@ -986,7 +985,7 @@ def updateshareprices():
     assets = getAssets()
     
     # Log values
-    date = datetime.datetime.now()
+    date = datetime.datetime.utcnow()
     if not lastlog or lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d") or lastlog['exposure'] != round(exposure, 2) or lastlog['ftse100'] != ftse100:
         if lastlog and lastlog['date'].strftime("%Y-%m-%d") == date.strftime("%Y-%m-%d"):
             cursor.execute('UPDATE log SET date=NOW(), exposure=%s, capital=%s, cash=%s, ftse100=%s WHERE id=%s', [exposure, assets['capital'], assets['cash'], ftse100, lastlog['id']])

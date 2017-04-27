@@ -112,6 +112,10 @@ function updateTotals(company) {
 
 // Refresh onscreen data
 function refreshPrices() {
+	// Display last updated in local time
+    var updated = Date.parse($('#lastupdated').attr('data-utc'));
+    updated = new Date(updated - (new Date().getTimezoneOffset()));
+    lastupdated(updated);
 
     // Set 'refreshPrices' button to loading...
     var $btn = $('#refreshPrices').button('loading');
@@ -190,11 +194,6 @@ function lastupdated(lastdate) {
 }
 
 $(function() {
-	// Display last updated in local time
-    var updated = Date.parse($('#lastupdated').attr('data-utc'));
-    updated = new Date(updated - (new Date().getTimezoneOffset()));
-    lastupdated(updated);
-
     // Nav Bar
     // Changes portfolio when menu item selected
     $('.portfoliochange').on('click', function() {
