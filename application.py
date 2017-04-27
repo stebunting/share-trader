@@ -57,7 +57,7 @@ conn = mysql.connect()
 cursor = conn.cursor()
 
 try:
-    cursor.execute("SET time_zone='Europe/London'")
+    cursor.execute("SET time_zone='UTC'")
 except:
     pass
 
@@ -114,7 +114,7 @@ def index():
             pass
         
     portfolio_index = portfolios[1]
-    portfolios[0][portfolio_index]['lastupdated'] = time_zone.localize(portfolios[0][portfolio_index]['lastupdated']) #.astimezone(local_tz) #.strftime('%a %d %b @ %I:%M:%S%p')
+    portfolios[0][portfolio_index]['lastupdated'] = portfolios[0][portfolio_index]['lastupdated'].isoformat(); #.strftime('%a %d %b @ %I:%M:%S%p')
 
     # Get open share data from database
     cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
@@ -374,6 +374,7 @@ def statement():
     portfolios = getPortfolio()
     portfolio_index = portfolios[1]
     registerdate = portfolios[0][portfolio_index]['registerdate'].replace(tzinfo=time_zone)
+    print(registerdate)
     msg = []
     
     # Set default values for start and end date
@@ -972,7 +973,8 @@ def updateshareprices():
             sharedata[i]['daysHeld'] = (sellDatetime - buyDatetime).days
     
     # Update exposure and lastupdated in portfolios db
-    cursor.execute('UPDATE portfolios SET exposure=%s, lastupdated=NOW() WHERE userid=%s AND id=%s', [exposure, session['user_id'], session['portfolio']])
+    lastupdated = datetime.datetime.utcnow()
+    cursor.execute('UPDATE portfolios SET exposure=%s, lastupdated=%s WHERE userid=%s AND id=%s', [exposure, lastupdated, session['user_id'], session['portfolio']])
     conn.commit()
     
     # Update log
@@ -1006,7 +1008,8 @@ def updateshareprices():
         'profitloss': exposure + salevaluedelta + assets['cash'] - assets['capital'],
         'percentage': 0,
         'dailyprofit': exposure + assets['cash'] - lastexposure - lastcash,
-        'dailypercent': 0
+        'dailypercent': 0,
+        'lastupdated': lastupdated
     }
     if assets['capital'] != 0: details['percentage'] = (100 * ((exposure + salevaluedelta + assets['cash']) / assets['capital'])) - 100
     if exposure != 0: details['dailypercent'] = 100 * (details['dailyprofit'] / (exposure + assets['cash']))

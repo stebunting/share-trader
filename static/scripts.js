@@ -107,6 +107,7 @@ function updateTotals(company) {
     }
     $('#dailyprofit').text(gbp(company['dailyprofit']));
     $('#dailypercent').text(percent(company['dailypercent']));
+    lastupdated(new Date(company['lastupdated']));
 }
 
 // Refresh onscreen data
@@ -130,10 +131,6 @@ function refreshPrices() {
         // When done, set refresh button active and reset log button
         $btn.button('reset');
         $('#logState').button('reset').addClass('btn-primary').removeClass('btn-success');
-    
-        // Update last updated time
-        var lastUpdate = new Date();
-        $('#lastupdated').text(lastUpdate.format('ddd dd mmm @ hh:MM:sstt'));
     }).fail(function() {
         $btn.button('fail');
         
@@ -186,7 +183,18 @@ function updatetarget($element) {
     });
 }
 
+// Function to print last updated on index page
+function lastupdated(lastdate) {
+	lastdate = lastdate.format('ddd dd mmm @ hh:MM:sstt');
+    $('#lastupdated').text(lastdate);
+}
+
 $(function() {
+	// Display last updated in local time
+    var updated = Date.parse($('#lastupdated').attr('data-utc'));
+    updated = new Date(updated - (new Date().getTimezoneOffset()));
+    lastupdated(updated);
+
     // Nav Bar
     // Changes portfolio when menu item selected
     $('.portfoliochange').on('click', function() {
@@ -208,7 +216,7 @@ $(function() {
     // Fade out alert flashing
     setTimeout(function(){
         $('#flash').fadeOut(1000); }, 3000);
-    
+
     // Index Page - Edit target/stop loss
     // Call function when focus out or enter pressed
     $('.indexform').keydown(function(e){

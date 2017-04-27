@@ -15,8 +15,7 @@ from lxml import html
 from functools import wraps
 
 # Get timezones
-time_zone = pytz.timezone('Europe/London')
-local_tz = get_localzone()
+time_zone = pytz.timezone('UTC')
 
 # Get environment variables, either locally or from config vars
 try:
