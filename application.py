@@ -75,6 +75,7 @@ except:
 def getPortfolio():
     cursor.execute('SELECT * FROM portfolios WHERE userid=%s', [session['user_id']])
     portfolios = cursor.fetchall()
+    print(portfolios)
     print(session['user_id'])
     for i in range(len(portfolios)):
         if portfolios[i]['id'] == session['portfolio']:
