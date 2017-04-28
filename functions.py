@@ -3,7 +3,6 @@ import os
 import datetime
 import locale
 import pytz
-from tzlocal import get_localzone
 
 # Flask module
 from flask import session, redirect, url_for, request

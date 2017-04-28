@@ -243,7 +243,7 @@
                         <div class="form-group">
                             <label class="control-label col-md-4" for="selldate">Sale Date</label>
                             <div class="col-md-8">
-                                <input type="text" class="form-control datepicker" id="selldate" name="selldate" placeholder="Sell Date" value="{% if submit != 'submit' and share['selldate'] != None %}{{ share['selldate'] }}{% endif %}" {% if share['status'] == 0 %}readonly{% endif %}>
+                                <input type="text" class="form-control datepicker" id="selldate" name="selldate" placeholder="Sell Date" value="{% if share['selldate'] != None %}{{ share['selldate']|dateFormat(format='datetimeISO') }}{% endif %}" {% if share['status'] == 0 %}readonly{% endif %}>
                             </div>
                         </div>
                         <div class="form-group">

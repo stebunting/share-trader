@@ -214,7 +214,7 @@ def shares():
             # {field: [variable, type, require user entry, default, message]}
             
             values = {
-                'buydate': [request.form.get('buydate'), 'date', False, datetime.datetime.strftime(datetime.datetime.now(pytz.timezone('Europe/London')), '%Y-%m-%d %H:%M:%S'), ''],
+                'buydate': [request.form.get('buydate'), 'date', False, datetime.datetime.now(pytz.timezone('Europe/London')), ''],
                 'selldate': [request.form.get('selldate'), 'date', False, None, ''],
                 'quantity': [request.form.get('quantity'), 'int', True, 0, 'Quantity required'],
                 'stampduty': [request.form.get('stampduty'), 'float', False, 0, ''],
@@ -236,7 +236,8 @@ def shares():
                     
                     # Check date
                     if val[1] == 'date':
-                        share[key] = str(datetime.datetime.strptime(val[0], '%Y-%m-%d %H:%M:%S'))
+                        share[key] = pytz.timezone('Europe/London').localize(datetime.datetime.strptime(val[0], '%Y-%m-%d %H:%M:%S'))   
+                        print(share[key])
                 except ValueError:
                     # If casting fails, revert to default value
                     # If input required for this field, input validation fails here
@@ -269,7 +270,7 @@ def shares():
                 share['percentage'] = ((10000 * (share['value'] - share['stampduty'] - share['buytradecost'] - share['selltradecost'] + share['dividends']) / (share['buyprice'] * share['quantity'])) - 100)
             
             if share['status'] == 0 and not verifyDate(share['selldate']):
-                share['selldate'] = datetime.datetime.now()
+                share['selldate'] = datetime.datetime.now(tzinfo=pytz.timezone('Europe/London'))
             
             if submit == 'submit':
                 quoteLogin()
@@ -287,10 +288,16 @@ def shares():
                 # Set buydate as UTC for database
                 buydate = verifyDate(request.form.get('buydate')).replace(tzinfo=None)
                 buydate = pytz.timezone('Europe/London').localize(buydate).astimezone(pytz.utc)
-                
+
+                # Set selldate as UTC for database
+                selldate = share['selldate']
+                if selldate:
+                    selldate = share['selldate'].replace(tzinfo=None)
+                    selldate = pytz.timezone('Europe/London').localize(selldate).astimezone(pytz.utc)
+
                 data = [session['user_id'], session['portfolio'], share['epic'], share['status'], buydate,
                         share['buyprice'], share['quantity'], share['stampduty'], share['buytradecost'],
-                        share['buycost'], share['target'], share['stoploss'], share['selldate'], 
+                        share['buycost'], share['target'], share['stoploss'], selldate, 
                         share['sellprice'], share['selltradecost'], share['value'], share['profitloss'],
                         share['percentage'], share['comment'], share['bidopen']]
         
@@ -332,7 +339,10 @@ def shares():
             cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s ORDER BY id DESC LIMIT 1', [session['user_id'], session['portfolio']])
         if cursor.rowcount == 1:
             share = cursor.fetchone()
-            share['buydate'] = pytz.utc.localize(share['buydate']).astimezone(pytz.timezone('Europe/London'))
+            # Add London timezone to dates
+            for i in ['buydate', 'selldate']:
+                if share[i]:
+                    share[i] = pytz.utc.localize(share[i]).astimezone(pytz.timezone('Europe/London'))
             id = share['id']
         else:
             submit = 'submit'
@@ -352,7 +362,8 @@ def shares():
     if submit == 'submit':
         if request.method == 'GET' or request.form.get('submit') == "delete":
             share = {
-                'buydate': datetime.datetime.now(pytz.timezone('Europe/London'))
+                'buydate': datetime.datetime.now(pytz.timezone('Europe/London')),
+                'selldate': None
             }   
         share['daysHeld'] = None
         dividends = []
