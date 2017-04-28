@@ -50,7 +50,7 @@ mysql = MySQL(app, cursorclass=DictCursor)
 # Ensure responses aren't cached
 @app.after_request
 def after_request(response):
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
     response.headers["Expires"] = 0
     response.headers["Pragma"] = "no-cache"
     return response
@@ -75,8 +75,6 @@ except:
 def getPortfolio():
     cursor.execute('SELECT * FROM portfolios WHERE userid=%s', [session['user_id']])
     portfolios = cursor.fetchall()
-    print(portfolios)
-    print(session['user_id'])
     for i in range(len(portfolios)):
         if portfolios[i]['id'] == session['portfolio']:
             return [portfolios, i]
