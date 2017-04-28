@@ -248,7 +248,7 @@ def shares():
         
             # Dictionary of values to check with defaults that depend on the last step
             defaults = {
-                'buycost': [request.form.get('buycost'), 'float', False, share['quantity'] * share['buyprice'] * 0.01],
+                'buycost': [request.form.get('buycost'), 'float', False, (share['quantity'] * share['buyprice'] * 0.01) - share['stampduty'] - share['buytradecost']],
                 'target': [request.form.get('target'), 'float', False, share['buyprice'] * 1.2],
                 'stoploss': [request.form.get('stoploss'), 'float', False, share['buyprice'] * 0.9]
             }
@@ -270,7 +270,7 @@ def shares():
                 share['percentage'] = ((10000 * (share['value'] - share['stampduty'] - share['buytradecost'] - share['selltradecost'] + share['dividends']) / (share['buyprice'] * share['quantity'])) - 100)
             
             if share['status'] == 0 and not verifyDate(share['selldate']):
-                share['selldate'] = datetime.datetime.now(tzinfo=pytz.timezone('Europe/London'))
+                share['selldate'] = datetime.datetime.now(pytz.timezone('Europe/London'))
             
             if submit == 'submit':
                 quoteLogin()

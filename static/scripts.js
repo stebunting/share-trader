@@ -287,43 +287,49 @@ $(function() {
     // Share Page
     // Calculate Stamp Duty when button pressed
     $('#stampdutycalculate').click(function() {
-        var stampduty = 0;
-        if (parseFloat($('#buyprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
-            stampduty = parseInt($('#buyprice').val()) * parseInt($('#quantity').val()) * 0.00005;
-        }
-        $('#stampduty').focus().val(shareprice(stampduty));
+        if ($('#stampduty').attr('readonly') != 'readonly') {
+            var stampduty = 0;
+            if (parseFloat($('#buyprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
+                stampduty = parseInt($('#buyprice').val()) * parseInt($('#quantity').val()) * 0.00005;
+            }
+            $('#stampduty').focus().val(shareprice(stampduty));
+        };
     });
     
     // Share Page
     // Calculate total buy cost when button pressed
     $('#buycostcalculate').click(function() {
-        var buycost = 0;
-        if (parseFloat($('#buyprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
-            buycost += parseFloat($('#buyprice').val()) * 0.01 * parseInt($('#quantity').val());
-        }
-        if (parseFloat($('#stampduty').val()) > 0) {
-            buycost += parseFloat($('#stampduty').val());
-        }
-        if (parseFloat($('#buytradecost').val()) > 0) {
-            buycost += parseFloat($('#buytradecost').val());
-        }
-        if (buycost < 0) {
-            buycost = 0;
-        }
-        $('#buycost').focus().val(shareprice(buycost));
+        if ($('#buycost').attr('readonly') != 'readonly') {
+            var buycost = 0;
+            if (parseFloat($('#buyprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
+                buycost += parseFloat($('#buyprice').val()) * 0.01 * parseInt($('#quantity').val());
+            }
+            if (parseFloat($('#stampduty').val()) > 0) {
+                buycost += parseFloat($('#stampduty').val());
+            }
+            if (parseFloat($('#buytradecost').val()) > 0) {
+                buycost += parseFloat($('#buytradecost').val());
+            }
+            if (buycost < 0) {
+                buycost = 0;
+            }
+            $('#buycost').focus().val(shareprice(buycost));
+        };
     });
     
     // Share Page
     // Calculate total sell cost when button pressed
     $('#sellpricecalculate').click(function() {
-        var sellprice = 0;
-        if (parseFloat($('#sellprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
-            sellprice += parseFloat($('#sellprice').val()) * 0.01 * parseInt($('#quantity').val());
-        }
-        if (parseFloat($('#selltradecost').val()) > 0) {
-            sellprice -= parseFloat($('#selltradecost').val());
-        }
-        $('#value').focus().val(shareprice(sellprice));
+        if ($('#sellcost').attr('readonly') != 'readonly') {
+            var sellprice = 0;
+            if (parseFloat($('#sellprice').val()) > 0 && parseInt($('#quantity').val()) > 0) {
+                sellprice += parseFloat($('#sellprice').val()) * 0.01 * parseInt($('#quantity').val());
+            }
+            if (parseFloat($('#selltradecost').val()) > 0) {
+                sellprice -= parseFloat($('#selltradecost').val());
+            }
+            $('#value').focus().val(shareprice(sellprice));
+        };
     });
     
     // Statement Page
