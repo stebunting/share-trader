@@ -37,6 +37,7 @@ except ImportError:
 
 locale.setlocale(locale.LC_ALL, loc)
 
+# Configure Application
 app = Flask(__name__)
 app.config['MYSQL_DATABASE_HOST'] = mysqlhost
 app.config['MYSQL_DATABASE_DB'] = mysqldb
@@ -45,6 +46,14 @@ app.config['MYSQL_DATABASE_PASSWORD'] = mysqlpassword
 app.secret_key = secretkey
 app.config['SESSION_TYPE'] = 'filesystem'
 mysql = MySQL(app, cursorclass=DictCursor)
+
+# Ensure responses aren't cached
+@app.after_request
+def after_request(response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Expires"] = 0
+    response.headers["Pragma"] = "no-cache"
+    return response
 
 # Custom filters
 app.jinja_env.filters['gbp'] = gbp
@@ -66,6 +75,7 @@ except:
 def getPortfolio():
     cursor.execute('SELECT * FROM portfolios WHERE userid=%s', [session['user_id']])
     portfolios = cursor.fetchall()
+    print(session['user_id'])
     for i in range(len(portfolios)):
         if portfolios[i]['id'] == session['portfolio']:
             return [portfolios, i]

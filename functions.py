@@ -5,13 +5,13 @@ import locale
 import pytz
 
 # Flask module
-from flask import session, redirect, url_for, request
+from flask import session, redirect, url_for, request, make_response
 
 # HTML request modules
 import requests
 from lxml import html
 
-from functools import wraps
+from functools import wraps, update_wrapper
 
 # Get environment variables, either locally or from config vars
 try:
@@ -104,6 +104,18 @@ def login_required(f):
             return redirect(url_for('login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
+
+def nocache(view):
+    @wraps(view)
+    def no_cache(*args, **kwargs):
+        response = make_response(view(*args, **kwargs))
+        response.headers['Last-Modified'] = datetime.datetime.now()
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '-1'
+        return response
+        
+    return update_wrapper(no_cache, view)
 
 # Function to verify date
 def verifyDate(test, **kwargs):
