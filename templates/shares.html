@@ -129,7 +129,7 @@
                         <div class="form-group">
                             <label class="control-label col-md-4" for="buydate">Purchase Date</label>
                             <div class="col-md-8">
-                                <input type="text" class="form-control datepicker" id="buydate" name="buydate"{% if share['buydate'] %} value="{{ share['buydate'] }}"{% endif %} {% if submit == 'update' %}readonly{% endif %}>
+                                <input type="text" class="form-control datepicker" id="buydate" name="buydate"{% if share['buydate'] %} value="{{ share['buydate']|dateFormat(format='datetimeISO') }}"{% endif %} {% if submit == 'update' %}readonly{% endif %}>
                             </div>
                         </div>
                         <div class="form-group">

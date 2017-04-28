@@ -127,6 +127,7 @@ def index():
         lastcash = data[1]['cash']
     else:
         lastexposure = 0
+        lastcash = 0
     
     # Calculate portfolio details
     # Market exposure, total sale cost (exposure - costs), daily performance
@@ -139,7 +140,7 @@ def index():
         # Calculate days held
         buyDatetime = verifyDate(row['buydate'], startofday=True)
         if row['selldate'] == None:
-            row['daysHeld'] = (datetime.datetime.now(time_zone) - buyDatetime).days
+            row['daysHeld'] = (datetime.datetime.now(pytz.utc) - buyDatetime).days
         else:
             sellDatetime = verifyDate(row['selldate'], startofday=True)
             row['daysHeld'] = (sellDatetime - buyDatetime).days
@@ -211,8 +212,9 @@ def shares():
         
             # Dictionary of posted values to check, will be added to share dict
             # {field: [variable, type, require user entry, default, message]}
+            
             values = {
-                'buydate': [request.form.get('buydate'), 'date', False, datetime.datetime.strftime(datetime.datetime.utcnow(), '%Y-%m-%d %H:%M:%S'), ''],
+                'buydate': [request.form.get('buydate'), 'date', False, datetime.datetime.strftime(datetime.datetime.now(pytz.timezone('Europe/London')), '%Y-%m-%d %H:%M:%S'), ''],
                 'selldate': [request.form.get('selldate'), 'date', False, None, ''],
                 'quantity': [request.form.get('quantity'), 'int', True, 0, 'Quantity required'],
                 'stampduty': [request.form.get('stampduty'), 'float', False, 0, ''],
@@ -281,7 +283,12 @@ def shares():
             # If input validated, try to write to database
             if inputValidation:
                 goToIndex = 0
-                data = [session['user_id'], session['portfolio'], share['epic'], share['status'], share['buydate'],
+
+                # Set buydate as UTC for database
+                buydate = verifyDate(request.form.get('buydate')).replace(tzinfo=None)
+                buydate = pytz.timezone('Europe/London').localize(buydate).astimezone(pytz.utc)
+                
+                data = [session['user_id'], session['portfolio'], share['epic'], share['status'], buydate,
                         share['buyprice'], share['quantity'], share['stampduty'], share['buytradecost'],
                         share['buycost'], share['target'], share['stoploss'], share['selldate'], 
                         share['sellprice'], share['selltradecost'], share['value'], share['profitloss'],
@@ -325,6 +332,7 @@ def shares():
             cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s ORDER BY id DESC LIMIT 1', [session['user_id'], session['portfolio']])
         if cursor.rowcount == 1:
             share = cursor.fetchone()
+            share['buydate'] = pytz.utc.localize(share['buydate']).astimezone(pytz.timezone('Europe/London'))
             id = share['id']
         else:
             submit = 'submit'
@@ -344,7 +352,7 @@ def shares():
     if submit == 'submit':
         if request.method == 'GET' or request.form.get('submit') == "delete":
             share = {
-                'buydate': str(datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'))
+                'buydate': datetime.datetime.now(pytz.timezone('Europe/London'))
             }   
         share['daysHeld'] = None
         dividends = []
@@ -356,14 +364,14 @@ def shares():
         
         buyDatetime = verifyDate(share['buydate'], startofday=True)
         if share['selldate'] == None:
-            share['daysHeld'] = (datetime.datetime.now(time_zone) - buyDatetime).days
+            share['daysHeld'] = (datetime.datetime.now(pytz.utc) - buyDatetime).days
         else:
             sellDatetime = verifyDate(share['selldate'], startofday=True)
             share['daysHeld'] = (sellDatetime - buyDatetime).days
         
         cursor.execute('SELECT date, amount FROM cash WHERE shareid=%s AND userid=%s AND portfolioid=%s ORDER BY date DESC', [id, session['user_id'], session['portfolio']])
         dividends = cursor.fetchall()
-    
+
     return render_template('shares.html', nav=nav, share=share, submit=submit, portfolios=getPortfolio()[0], dividends=dividends)
 
 # Route for Cash Statement/Entry Page
@@ -372,19 +380,18 @@ def shares():
 def statement():
     portfolios = getPortfolio()
     portfolio_index = portfolios[1]
-    registerdate = portfolios[0][portfolio_index]['registerdate'].replace(tzinfo=time_zone)
-    print(registerdate)
+    registerdate = portfolios[0][portfolio_index]['registerdate'].replace(tzinfo=pytz.utc)
     msg = []
     
     # Set default values for start and end date
-    today = datetime.datetime.now(time_zone)
+    today = datetime.datetime.now(pytz.utc)
     startdate = today + datetime.timedelta(days=-365)
     if startdate < registerdate:
         startdate = registerdate
     startdate = startdate.replace(hour=0, minute=0, second=0, microsecond=0)
     dates = {
         'start': startdate,
-        'end': today
+        'end': verifyDate(today, endofday=True)
     }
     
     # If default button was not pressed, check for input and verify
@@ -399,6 +406,7 @@ def statement():
             if date:
                 dates['end'] = date
     
+    print(dates['start'], dates['end'])
     # If new cash transaction posted
     if request.method == 'POST' and request.form.get('submit') != 'delete':
         
@@ -422,7 +430,7 @@ def statement():
                 valid = False
         
         # Check date
-        date = verifyDate(request.form.get('cash_date'))
+        date = verifyDate(request.form.get('cash_date'), startofday=True)
         if not date:
             msg.append('Invalid date')
             valid = False
@@ -503,7 +511,7 @@ def statement():
     for row in buydata:
         statement.append({
             'linkid': row['id'],
-            'date': row['buydate'].replace(tzinfo=time_zone),
+            'date': row['buydate'].replace(tzinfo=pytz.utc),
             'transaction': row['company'].title(),
             'debit': row['buycost'],
             'credit': None,
@@ -516,7 +524,7 @@ def statement():
     for row in selldata:
         statement.append({
             'linkid': row['id'],
-            'date': row['selldate'].replace(tzinfo=time_zone),
+            'date': row['selldate'].replace(tzinfo=pytz.utc),
             'transaction': row['company'].title(),
             'debit': None,
             'credit': row['value'],
@@ -530,7 +538,7 @@ def statement():
         transaction = {
             'cashid': row['id'],
             'linkid': row['shareid'],
-            'date': row['date'].replace(tzinfo=time_zone),
+            'date': row['date'].replace(tzinfo=pytz.utc),
             'transaction': 'Cash: {}'.format(row['category']),
             'debit': None,
             'credit': None,
@@ -553,7 +561,7 @@ def statement():
             row['balance'] = balance - row['debit']
         balance = row['balance']
     
-    date = datetime.datetime.now(time_zone).strftime("%Y-%m-%d")
+    date = datetime.datetime.now(pytz.utc).strftime("%Y-%m-%d")
     return render_template('statement.html', prefill=prefill, cash_categories=cash_categories, statement=statement, portfolios=portfolios[0], date=date, msg=msg, dates=dates)
 
 # Route for Log Page
@@ -567,7 +575,7 @@ def log():
     # Recalculate all rows capital/cash in logging to fix errors
     if request.method == 'POST' and request.form.get('submit') == 'Recalculate':
         for i in range(len(log)):
-            date = '{} 23:59:59'.format(log[i]['date'].replace(tzinfo=time_zone).strftime('%Y-%m-%d'))
+            date = '{} 23:59:59'.format(log[i]['date'].replace(tzinfo=pytz.utc).strftime('%Y-%m-%d'))
             assets = getAssets(date)
             cursor.execute('UPDATE log SET capital=%s, cash=%s WHERE id=%s', [assets['capital'], assets['cash'], log[i]['id']])
             conn.commit()
@@ -606,10 +614,10 @@ def log():
 def charts():
     portfolios = getPortfolio()
     portfolio_index = portfolios[1]
-    registerdate = portfolios[0][portfolio_index]['registerdate'].replace(tzinfo=time_zone)
+    registerdate = portfolios[0][portfolio_index]['registerdate'].replace(tzinfo=pytz.utc)
     
     # Set default values for start and end date
-    today = datetime.datetime.now(time_zone)
+    today = datetime.datetime.now(pytz.utc)
     startdate = today + datetime.timedelta(days=-365)
     if startdate < registerdate:
         startdate = registerdate.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -966,7 +974,7 @@ def updateshareprices():
         # Calculate days held
         buyDatetime = verifyDate(sharedata[i]['buydate'], startofday=True)
         if sharedata[i]['selldate'] == None:
-            sharedata[i]['daysHeld'] = (datetime.datetime.now(time_zone) - buyDatetime).days
+            sharedata[i]['daysHeld'] = (datetime.datetime.now(pytz.utc) - buyDatetime).days
         else:
             sellDatetime = verifyDate(sharedata[i]['selldate'], startofday=True)
             sharedata[i]['daysHeld'] = (sellDatetime - buyDatetime).days
@@ -996,9 +1004,13 @@ def updateshareprices():
     
     # Get log from 2 entries ago and todays buys to calculate daily performance
     cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 2', [session['user_id'], session['portfolio']])
-    prevdata = cursor.fetchall()[1]
-    lastexposure = prevdata['exposure'] if cursor.rowcount == 2 else 0
-    lastcash = prevdata['cash'] if cursor.rowcount == 2 else 0
+    if cursor.rowcount == 2:
+        prevdata = cursor.fetchall()[1]
+        lastexposure = prevdata['exposure']
+        lastcash = prevdata['cash']
+    else:
+        lastexposure = 0
+        lastcash = assets['capital']
     
     # Calculate master details
     details = {

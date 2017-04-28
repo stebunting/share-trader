@@ -14,9 +14,6 @@ from lxml import html
 
 from functools import wraps
 
-# Get timezones
-time_zone = pytz.timezone('UTC')
-
 # Get environment variables, either locally or from config vars
 try:
     from settings import *
@@ -57,6 +54,8 @@ def dateFormat(value, **kwargs):
     format = "%d %b %Y"
     if 'format' in kwargs and kwargs['format'] == 'ISO':
         format = "%Y-%m-%d"
+    elif 'format' in kwargs and kwargs['format'] == 'datetimeISO':
+        format = "%Y-%m-%d %H:%M:%S"
     return datetime.datetime.strftime(value, format)
 
 def quoteLogin():
@@ -112,24 +111,24 @@ def verifyDate(test, **kwargs):
     if 'startofday' in kwargs and kwargs['startofday']:
         try:
             verified = datetime.datetime.strptime(str(test).split(' ')[0], "%Y-%m-%d")
-            return verified.replace(tzinfo=time_zone)
+            return verified.replace(tzinfo=pytz.utc)
         except:
             return False
     elif 'endofday' in kwargs and kwargs['endofday']:
         try:
             verified = datetime.datetime.strptime(str(test).split(' ')[0], "%Y-%m-%d")
-            return verified.replace(hour=23, minute=59, second=59, tzinfo=time_zone)
+            return verified.replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=pytz.utc)
         except:
             return False
     else:
         try:
-            verified = datetime.datetime.strptime(str(test), "%Y-%m-%d %H:%m:%s")
-            return verified.replace(tzinfo=time_zone)
+            verified = datetime.datetime.strptime(str(test), "%Y-%m-%d %H:%M:%S")
+            return verified.replace(tzinfo=pytz.utc)
         except:
             pass
         try:
             verified = datetime.datetime.strptime(str(test).split(' ')[0], "%Y-%m-%d")
             time = datetime.datetime.time(datetime.datetime.now())
-            return datetime.datetime.combine(verified, time).replace(tzinfo=time_zone)
+            return datetime.datetime.combine(verified, time).replace(tzinfo=pytz.utc)
         except:
             pass
