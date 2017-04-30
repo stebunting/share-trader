@@ -50,7 +50,7 @@ mysql = MySQL(app, cursorclass=DictCursor)
 # Ensure responses aren't cached
 @app.after_request
 def after_request(response):
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Expires"] = 0
     response.headers["Pragma"] = "no-cache"
     return response
@@ -61,18 +61,22 @@ app.jinja_env.filters['shareprice'] = shareprice
 app.jinja_env.filters['percentage'] = percentage
 app.jinja_env.filters['dateFormat'] = dateFormat
 
-# Connect to MySQL database
-conn = mysql.connect()
-cursor = conn.cursor()
-
 try:
     cursor.execute("SET time_zone='UTC'")
 except:
     pass
 
+# Connect to MySQL database
+def dbConnect():
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    return (conn, cursor)
+
 # Function to get portfolio data, required for nav bar on every page
 # Returns array with index of current selected portfolio
 def getPortfolio():
+    conn, cursor = dbConnect()
+
     cursor.execute('SELECT * FROM portfolios WHERE userid=%s', [session['user_id']])
     portfolios = cursor.fetchall()
     for i in range(len(portfolios)):
@@ -82,6 +86,7 @@ def getPortfolio():
 # Function to calculate users capital and cash
 # Returns dictionary
 def getAssets(date = "{} 23:59:59".format(datetime.datetime.utcnow().strftime("%Y-%m-%d"))):
+    conn, cursor = dbConnect()
     cursor.execute('SELECT SUM(amount) AS capital FROM cash WHERE categoryid=10 AND date<=%s AND userid=%s AND portfolioid=%s', [date, session['user_id'], session['portfolio']])
     capital = cursor.fetchone()['capital']
     capital = float(capital) if capital else 0
@@ -98,6 +103,8 @@ def getAssets(date = "{} 23:59:59".format(datetime.datetime.utcnow().strftime("%
  
 # Function to update assets in database
 def updateAssets():
+    conn, cursor = dbConnect()
+
     assets = getAssets()
     cursor.execute('UPDATE portfolios SET capital=%s, cash=%s WHERE id=%s AND userid=%s', [assets['capital'], assets['cash'], session['portfolio'], session['user_id']])
     conn.commit()
@@ -106,6 +113,8 @@ def updateAssets():
 @app.route('/')
 @login_required
 def index():
+    conn, cursor = dbConnect()
+
     # Get portfolio details and set last updated text to readable format
     portfolios = getPortfolio()
     
@@ -169,6 +178,8 @@ def index():
 @app.route('/shares', methods=['GET', 'POST'])
 @login_required
 def shares():
+    conn, cursor = dbConnect()
+
     if request.method == 'POST':
     
         submit = request.form.get('submit')
@@ -398,6 +409,8 @@ def shares():
 @app.route('/statement', methods=['GET', 'POST'])
 @login_required
 def statement():
+    conn, cursor = dbConnect()
+
     portfolios = getPortfolio()
     portfolio_index = portfolios[1]
     registerdate = portfolios[0][portfolio_index]['registerdate'].replace(tzinfo=pytz.utc)
@@ -588,6 +601,8 @@ def statement():
 @app.route('/log', methods=['GET', 'POST'])
 @login_required
 def log():
+    conn, cursor = dbConnect()
+
     # Get all log data from database
     cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC', [session['user_id'], session['portfolio']])
     log = cursor.fetchall()
@@ -632,6 +647,8 @@ def log():
 @app.route('/charts', methods=['GET'])
 @login_required
 def charts():
+    conn, cursor = dbConnect()
+
     portfolios = getPortfolio()
     portfolio_index = portfolios[1]
     registerdate = portfolios[0][portfolio_index]['registerdate'].replace(tzinfo=pytz.utc)
@@ -741,7 +758,8 @@ def charts():
 @app.route('/controlpanel', methods=['GET', 'POST'])
 @login_required
 def controlpanel():
-    
+    conn, cursor = dbConnect()
+
     # If form submitted...
     if request.method == 'POST':
     
@@ -901,6 +919,8 @@ def controlpanel():
 # Route to schedule log and send daily e-mail
 @app.route('/schedule')
 def schedule():
+    conn, cursor = dbConnect()
+
     # Get all users
     cursor.execute("SELECT id, email, dailyalert FROM users")
     users = cursor.fetchall()
@@ -953,6 +973,8 @@ def schedule():
 # Route to reset bidopen, scheduled for 5am every weekday
 @app.route('/resetbidopen')
 def resetbidopen():
+    conn, cursor = dbConnect()
+
     cursor.execute('UPDATE shares SET bidopen=sellprice WHERE status=1')
     conn.commit()
     return 'true'
@@ -960,6 +982,8 @@ def resetbidopen():
 # Route to update share prices and return values as JSON for insertion by JS
 @app.route('/updateshareprices', methods=['GET', 'POST'])
 def updateshareprices():
+    conn, cursor = dbConnect()
+
     # Get all active share data
     cursor.execute('SELECT id, epic, buydate, selldate, buyprice, quantity, stampduty, buytradecost, bidopen, selltradecost, value, dividends, profitloss, percentage FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     sharedata = cursor.fetchall()
@@ -1051,6 +1075,8 @@ def updateshareprices():
 # Returns new value (or current value if invalid entry)
 @app.route('/updateindex', methods=['POST'])
 def updateindex():
+    conn, cursor = dbConnect()
+
     content = request.get_json()
     data = content[0].split('-')
     try:
@@ -1068,6 +1094,8 @@ def updateindex():
 # Route to get all company data for open shares from database and return JSON
 @app.route('/getepics')
 def getsharedata():
+    conn, cursor = dbConnect()
+
     cursor.execute('SELECT DISTINCT epic, company FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE status=1 AND userid=%s AND portfolioid=%s', [session['user_id'], session['portfolio']])
     return jsonify(cursor.fetchall())
 
@@ -1075,6 +1103,8 @@ def getsharedata():
 # Used for share page to dynamically update company name
 @app.route('/getcompanyname', methods=['GET', 'POST'])
 def company():
+    conn, cursor = dbConnect()
+
     cursor.execute('SELECT * FROM companies WHERE symbol=%s', [request.args.get('epic')])
     data = cursor.fetchall()
     return jsonify(data)
@@ -1082,6 +1112,8 @@ def company():
 # Route to change portfolio
 @app.route('/portfoliochange', methods=['POST'])
 def portfoliochange():
+    conn, cursor = dbConnect()
+
     newportfolio = int(request.get_json())
     cursor.execute('UPDATE users SET lastportfolioid=%s WHERE id=%s', [newportfolio, session['user_id']])
     conn.commit()
@@ -1091,6 +1123,8 @@ def portfoliochange():
 # Route to register new user
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    conn, cursor = dbConnect()
+
     if request.method == 'POST':
         # Check for errors
         valid = False
@@ -1145,6 +1179,8 @@ def register():
 # Route to log user in
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    conn, cursor = dbConnect()
+
     if request.method == 'POST':
         # Check for errors
         valid = True
