@@ -461,15 +461,22 @@ def statement():
             except ValueError:
                 msg.append('Amount should be a number')
                 valid = False
-        
-        # Check date
-        date = verifyDate(request.form.get('cash_date'), startofday=True)
-        if not date:
-            msg.append('Invalid date')
-            valid = False
 
         # Convert category to integer
         category = int(request.form.get('cash_category'))
+        
+        # Check date
+        if category == 10 or category == 20:
+            date = verifyDate(request.form.get('cash_date'), startofday=True)
+        elif category == 15 or category == 30:
+            date = verifyDate(request.form.get('cash_date'), endofday=True)
+        print(1, verifyDate(today.replace(tzinfo=pytz.utc), endofday=True), date)
+        print(verifyDate(today.replace(tzinfo=pytz.utc), endofday=True) > date)
+        if verifyDate(today.replace(tzinfo=pytz.utc), endofday=True) < date:
+            date = None
+        if not date:
+            msg.append('Invalid date')
+            valid = False
         
         if valid:
             # If dividend
@@ -989,7 +996,8 @@ def updateshareprices():
     sharedata = cursor.fetchall()
     
     # Calculate new row values based on new quote data
-    quoteLogin()
+    if not quoteLogin():
+        return
     exposure = 0
     salevaluedelta = 0
     for i in range(cursor.rowcount):

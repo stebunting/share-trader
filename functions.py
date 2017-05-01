@@ -65,6 +65,11 @@ def quoteLogin():
     }
     request_session = requests.session()
     result = request_session.get('http://uk.advfn.com/common/account/login')
+
+    # Return true if login successful else false
+    if not 200 <= result.status_code < 300:
+        return False
+
     tree = html.fromstring(result.text)
     payload['redirect_url'] = list(set(tree.xpath("//input[@name='redirect_url']/@value")))[0]
     headers = {
@@ -128,7 +133,7 @@ def verifyDate(test, **kwargs):
     elif 'endofday' in kwargs and kwargs['endofday']:
         try:
             verified = datetime.datetime.strptime(str(test).split(' ')[0], "%Y-%m-%d")
-            return verified.replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=pytz.utc)
+            return verified.replace(hour=23, minute=59, second=59, tzinfo=pytz.utc)
         except:
             return False
     else:
