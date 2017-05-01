@@ -136,6 +136,9 @@ def index():
     # Get open share data from database
     cursor.execute('SELECT * FROM shares INNER JOIN companies ON shares.epic=companies.symbol WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     sharedata = cursor.fetchall()
+
+    # Calculate capital/cash
+    assets = getAssets()
     
     # Get market exposure from last trading day to calculate daily performance
     cursor.execute('SELECT exposure, cash FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 2', [session['user_id'], session['portfolio']])
@@ -145,7 +148,7 @@ def index():
         lastcash = data[1]['cash']
     else:
         lastexposure = 0
-        lastcash = 0
+        lastcash = assets['capital']
     
     # Calculate portfolio details
     # Market exposure, total sale cost (exposure - costs), daily performance
