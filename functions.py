@@ -92,15 +92,19 @@ def quote(epic, price='bid'):
     page = requests.get('http://uk.advfn.com/p.php?pid=financials&symbol=LSE:{}'.format(epic))
     tree = html.fromstring(page.content)
     cell = tree.xpath('.//td[@class="m"][@align="center"]/text()')
+    value = None
     if len(cell) < 5:
-        return None
+        return value
     if price == 'price':
         value = cell[0]
     elif price == 'offer':
         value = cell[4]
     else:
         value = cell[3]
-    return float(value.strip().replace(',', ''))
+    if not value:
+        return value
+    else:
+        return float(value.strip().replace(',', ''))
 
 def login_required(f):
     @wraps(f)

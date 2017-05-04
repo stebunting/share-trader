@@ -944,8 +944,6 @@ def schedule():
         # Get all portfolios and shares
         cursor.execute('SELECT id, name FROM portfolios WHERE userid=%s', user['id'])
         portfolios = cursor.fetchall()
-        cursor.execute('SELECT id, portfolioid, epic, target, stoploss, sellprice, bidopen, value, profitloss, percentage FROM shares WHERE userid=%s AND status=1 ORDER BY epic ASC', user['id'])
-        shares = cursor.fetchall()
         session['user_id'] = user['id']
         
         # Loop over portfolios, get data and add to message
@@ -953,10 +951,11 @@ def schedule():
             session['portfolio'] = portfolio['id']
             data = updateshareprices()
             content = json.loads(data.get_data())
+            updated_shares = content[0]
             details = content[-1]
             html += '<h3>Portfolio: <a href="https://share-trader.herokuapp.com/?portfolio={}">{}</a></h3><p><strong>Market Exposure:</strong> {}<br /><strong>Profit:</strong> {} ({})<br /><strong>Daily Proft:</strong> {} ({})</p><table><thead><tr><th>EPIC</th><th>Target</th><th>Stop Loss</th><th>Bid Price</th><th>Daily</th><th>Value</th><th colspan="2">Profit/Loss</th></tr></thead><tbody>'.format(portfolio['id'], portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
             plaintext += '\nPortfolio: {}\nMarket Exposure: {}\nProfit: {} ({})\nDaily Proft: {} ({})\n'.format(portfolio['name'], gbp(details['exposure']), gbp(details['profitloss']), percentage(details['percentage']), gbp(details['dailyprofit']), percentage(details['dailypercent']))
-            for share in shares:
+            for share in updated_shares:
                 if share['portfolioid'] == session['portfolio']:
                     plaintext += '{}: {} ({}) {} {} {}\n'.format(share['epic'], shareprice(share['sellprice']), shareprice(share['sellprice'] - share['bidopen'], profitloss=True), gbp(share['value']), gbp(share['profitloss'], profitloss=True), percentage(share['percentage']))
                     html += '<tr><td><a href="https://share-trader.herokuapp.com/shares?submit=update&id={}">{}</a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(share['id'], share['epic'], shareprice(share['target']), shareprice(share['stoploss']), shareprice(share['sellprice']), shareprice(share['sellprice'] - share['bidopen'], profitloss=True), gbp(share['value']), gbp(share['profitloss'], profitloss=True), percentage(share['percentage']))
@@ -995,7 +994,7 @@ def updateshareprices():
     conn, cursor = dbConnect()
 
     # Get all active share data
-    cursor.execute('SELECT id, epic, buydate, selldate, buyprice, quantity, stampduty, buytradecost, bidopen, selltradecost, value, dividends, profitloss, percentage FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
+    cursor.execute('SELECT * FROM shares WHERE userid=%s AND portfolioid=%s AND status=1 ORDER BY epic ASC', [session['user_id'], session['portfolio']])
     sharedata = cursor.fetchall()
     
     # Calculate new row values based on new quote data
@@ -1035,7 +1034,7 @@ def updateshareprices():
             sharedata[i]['daysHeld'] = (sellDatetime - buyDatetime).days
     
     # Update exposure and lastupdated in portfolios db
-    lastupdated = datetime.datetime.utcnow()
+    lastupdated = datetime.datetime.now(pytz.utc)
     cursor.execute('UPDATE portfolios SET exposure=%s, lastupdated=%s WHERE userid=%s AND id=%s', [exposure, lastupdated, session['user_id'], session['portfolio']])
     conn.commit()
     
