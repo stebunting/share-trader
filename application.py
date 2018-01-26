@@ -14,9 +14,6 @@ from pymysql.cursors import DictCursor
 
 from passlib.apps import custom_app_context as pwd_context
 
-import sys
-print(sys.version)
-
 # Chart modules
 import pygal
 from pygal import Config
