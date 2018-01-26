@@ -9,9 +9,11 @@ itsdangerous==0.24
 Jinja2==2.10
 lxml==4.1.1
 MarkupSafe==1.0
+packaging==16.8
 passlib==1.7.1
 pygal==2.4.0
 PyMySQL==0.8.0
+pyparsing==2.2.0
 pytz==2017.3
 requests==2.18.4
 six==1.11.0
