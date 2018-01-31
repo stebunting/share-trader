@@ -973,7 +973,7 @@ def schedule():
             msg['Subject'] = 'Stock portfolio update for {}'.format(dateFormat(datetime.datetime.now()))
             msg['From'] = 'sharetrader@stevebunting.com'
             msg['To'] = user['email']
-            server = smtplib.SMTP('smtp.stevebunting.com', 587)
+            server = smtplib.SMTP('smtp.34sp.com', 587)
             server.login(smtpuser, smtppassword)
             server.sendmail('sharetrader@stevebunting.com', user['email'], msg.as_string())
             server.close()
