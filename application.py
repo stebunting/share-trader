@@ -804,7 +804,7 @@ def controlpanel():
             if valid:
                 # Update database
                 quoteLogin()
-                ftse100 = quote('UKX', 'price')
+                ftse100 = quote('FTSE:UKX', 'price')
                 cursor.execute('INSERT INTO portfolios (userid, name, ftse100) VALUES (%s, %s, %s)', [session['user_id'], request.form.get('addportfolioname'), ftse100])
                 conn.commit()
         
@@ -1041,7 +1041,7 @@ def updateshareprices():
     # Update log
     cursor.execute('SELECT * FROM log WHERE userid=%s AND portfolioid=%s ORDER BY date DESC LIMIT 1', [session['user_id'], session['portfolio']])
     lastlog = cursor.fetchone()
-    ftse100 = quote('UKX', 'price')
+    ftse100 = quote('FTSE:UKX', 'price')
 
     # Calculate capital/cash
     assets = getAssets()
@@ -1169,7 +1169,7 @@ def register():
             # Add default portfolio
             id = cursor.lastrowid
             quoteLogin()
-            ftse100 = quote('UKX', 'price')
+            ftse100 = quote('FTSE:UKX', 'price')
             cursor.execute('INSERT INTO portfolios (userid, name, ftse100) VALUES (%s, %s, %s)', [id, 'Main', ftse100])
             lastportfolioid = cursor.lastrowid
             cursor.execute('UPDATE users SET lastportfolioid=%s WHERE id=%s', [lastportfolioid, id])

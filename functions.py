@@ -58,38 +58,49 @@ def dateFormat(value, **kwargs):
     return datetime.datetime.strftime(value, format)
 
 def quoteLogin():
-    payload = {
-        'login_username': advfnuser,
-        'login_password': advfnpassword,
-        'site': 'uk'
-    }
+    login_url = 'http://uk.advfn.com/common/account/login'
+    protected_page = 'https://secure.advfn.com/login/secure'
+
     request_session = requests.session()
-    result = request_session.get('http://uk.advfn.com/common/account/login')
+    result = request_session.get(login_url)
 
     # Return true if login successful else false
     if not 200 <= result.status_code < 300:
         return False
 
     tree = html.fromstring(result.text)
-    payload['redirect_url'] = list(set(tree.xpath("//input[@name='redirect_url']/@value")))[0]
-    headers = {
-        'Referer': 'http://uk.advfn.com/common/account/login',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_4) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.1 Safari/603.1.30'
+
+    payload = {
+        'login_username': advfnuser,
+        'login_password': advfnpassword,
+        'site': 'uk'
     }
+    payload['redirect_url'] = list(set(tree.xpath("//input[@name='redirect_url']/@value")))[0]
+
+    headers = {
+        'Referer': login_url,
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1 Safari/605.1.15'
+    }
+
     result = request_session.post(
-        'https://secure.advfn.com/login/secure', 
+        protected_page, 
         data=payload, 
         headers=headers
     )
+
+    tree = html.fromstring(result.text)
+    title = tree.xpath("//title/text()")[0].strip()
     
     # Return true if login successful else false
-    if not 200 <= result.status_code < 300:
+    if not 200 <= result.status_code < 300 or title == 'ADVFN Login':
         return False
     else:
         return True
 
 def quote(epic, price='bid'):
-    page = requests.get('http://uk.advfn.com/p.php?pid=financials&symbol=LSE:{}'.format(epic))
+    if epic != 'FTSE:UKX':
+        epic = 'LSE:{}'.format(epic)
+    page = requests.get('http://uk.advfn.com/p.php?pid=financials&symbol={}'.format(epic))
     tree = html.fromstring(page.content)
     cell = tree.xpath('.//td[@class="m"][@align="center"]/text()')
     value = None
