@@ -538,6 +538,7 @@ def statement():
             cursor.execute('UPDATE portfolios SET capital=capital-%s WHERE userid=%s AND id=%s', [request.form.get('value'), session['user_id'], session['portfolio']])
         elif request.form.get('category') == '20':
             cursor.execute('UPDATE shares SET dividends=dividends-%s WHERE id=%s AND userid=%s AND portfolioid=%s', [request.form.get('value'), request.form.get('shareid'), session['user_id'], session['portfolio']])
+        conn.commit()
         prefill = None
     
     else:
