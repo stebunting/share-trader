@@ -469,7 +469,7 @@ def statement():
         category = int(request.form.get('cash_category'))
         
         # Check date
-        if category == 10 or category == 20:
+        if category == 10 or category == 20 or category == 25:
             date = verifyDate(request.form.get('cash_date'), startofday=True)
         elif category == 15 or category == 30:
             date = verifyDate(request.form.get('cash_date'), endofday=True)
