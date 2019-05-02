@@ -61,6 +61,7 @@ app.jinja_env.filters['shareprice'] = shareprice
 app.jinja_env.filters['percentage'] = percentage
 app.jinja_env.filters['dateFormat'] = dateFormat
 
+# Set timezone
 try:
     cursor.execute("SET time_zone='UTC'")
 except:
