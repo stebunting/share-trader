@@ -25,7 +25,10 @@ def gbp(value, **kwargs):
         value = float(value)
     except TypeError:
         return value
-    retval = locale.currency(value, grouping=True)
+    try:
+        retval = locale.currency(value, grouping=True)
+    except ValueError:
+        retval = locale.format_string("£%10.2f", value, grouping=True)
     if 'profitloss' in kwargs and kwargs['profitloss'] and value >= 0:
         retval = '+{}'.format(retval)
     return retval

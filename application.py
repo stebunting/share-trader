@@ -1001,7 +1001,7 @@ def updateshareprices():
     
     # Calculate new row values based on new quote data
     if not quoteLogin():
-        return
+        return ''
     exposure = 0
     salevaluedelta = 0
     for i in range(cursor.rowcount):
