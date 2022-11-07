@@ -20,6 +20,8 @@ except ImportError:
     advfnuser = os.environ['ADVFNUSER']
     advfnpassword = os.environ['ADVFNPASSWORD']
 
+ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36'
+
 def gbp(value, **kwargs):
     try:
         value = float(value)
@@ -65,6 +67,7 @@ def quoteLogin():
     protected_page = 'https://secure.advfn.com/login/secure'
 
     request_session = requests.session()
+    request_session.headers['User-Agent'] = ua
     result = request_session.get(login_url)
 
     # Return true if login successful else false
@@ -82,7 +85,7 @@ def quoteLogin():
 
     headers = {
         'Referer': login_url,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1 Safari/605.1.15'
+        'User-Agent': ua
     }
 
     result = request_session.post(
@@ -101,9 +104,13 @@ def quoteLogin():
         return True
 
 def quote(epic, price='bid'):
+    headers = {
+        'User-Agent': ua
+    }
+
     if epic != 'FTSE:UKX':
         epic = 'LSE:{}'.format(epic)
-    page = requests.get('http://uk.advfn.com/p.php?pid=financials&symbol={}'.format(epic))
+    page = requests.get('http://uk.advfn.com/p.php?pid=financials&symbol={}'.format(epic), headers=headers)
     tree = html.fromstring(page.content)
     cell = tree.xpath('.//td[@class="m"][@align="center"]/text()')
     value = None
