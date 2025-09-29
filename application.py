@@ -27,6 +27,7 @@ try:
     from settings import *
 except ImportError:
     mysqlhost = os.environ['MYSQLHOST']
+    mysqlport = os.environ['MYSQLPORT']
     mysqldb = os.environ['MYSQLDB']
     mysqluser = os.environ['MYSQLUSER']
     mysqlpassword = os.environ['MYSQLPASSWORD']
@@ -40,6 +41,7 @@ locale.setlocale(locale.LC_ALL, loc)
 # Configure Application
 app = Flask(__name__)
 app.config['MYSQL_DATABASE_HOST'] = mysqlhost
+app.config['MYSQL_DATABASE_PORT'] = int(mysqlport)
 app.config['MYSQL_DATABASE_DB'] = mysqldb
 app.config['MYSQL_DATABASE_USER'] = mysqluser
 app.config['MYSQL_DATABASE_PASSWORD'] = mysqlpassword
